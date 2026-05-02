@@ -21,7 +21,7 @@ jobs:
 
       # 의존성 설치
       - name: Install dependencies
-        run: npm install
+        run: npm install --legacy-peer-deps
 
       # 빌드
       - name: Build Vite app
