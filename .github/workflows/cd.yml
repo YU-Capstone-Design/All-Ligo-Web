@@ -22,7 +22,7 @@ jobs:
       # 의존성 설치 및 빌드
       - name: Install dependencies and build
         run: |
-          npm install
+          npm install --legacy-peer-deps
           npm run build
 
       # 빌드 파일 전송 (배포 파일 업로드)
