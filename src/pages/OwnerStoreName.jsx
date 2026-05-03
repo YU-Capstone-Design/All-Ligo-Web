@@ -1,8 +1,10 @@
 import { useState } from "react";
+import { useNavigate } from "react-router-dom";
 import OwnerSignupHeader from "../components/auth/OwnerSignupHeader";
 import AuthButton from "../components/auth/AuthButton";
 
 const OwnerStoreName = () => {
+  const navigate = useNavigate();
   const [storeName, setStoreName] = useState("");
   const [isFocused, setIsFocused] = useState(false);
 
@@ -24,6 +26,8 @@ const OwnerStoreName = () => {
     if (!hasStoreName) {
       return;
     }
+
+    navigate("/owner-store-link");
   };
 
   return (
@@ -66,7 +70,7 @@ const OwnerStoreName = () => {
                 type="button"
                 onMouseDown={(event) => event.preventDefault()}
                 onClick={() => setStoreName("")}
-                className="ml-[8px] flex h-[20px] w-[20px] shrink-0 items-center justify-center rounded-full bg-[#CAD0D6] text-[18px] leading-none font-bold text-white"
+                className="ml-[8px] flex h-[24px] w-[24px] shrink-0 items-center justify-center rounded-full bg-[#CAD0D6] text-[18px] leading-none font-bold text-white"
                 aria-label="가게명 지우기"
               >
                 <span className="translate-y-[1px]">×</span>

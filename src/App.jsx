@@ -4,6 +4,7 @@ import Splash from "./pages/Splash";
 import OwnerLogin from "./pages/OwnerLogin";
 import EmailRegistration from "./pages/EmailRegistration";
 import OwnerStoreName from "./pages/OwnerStoreName";
+import OwnerStoreLink from "./pages/OwnerStoreLink";
 
 const App = () => {
   return (
@@ -14,6 +15,7 @@ const App = () => {
           <Route path="/owner-login" element={<OwnerLogin />} />
           <Route path="/email-registration" element={<EmailRegistration />} />
           <Route path="/owner-store-name" element={<OwnerStoreName />} />
+          <Route path="/owner-store-link" element={<OwnerStoreLink />} />
           <Route path="/login" element={<OwnerLogin />} />
         </Route>
       </Routes>
