@@ -2,6 +2,8 @@ import { BrowserRouter, Route, Routes } from "react-router-dom";
 import GlobalLayout from "./layout/GlobalLayout";
 import Splash from "./pages/Splash";
 import OwnerLogin from "./pages/OwnerLogin";
+import EmailRegistration from "./pages/EmailRegistration";
+import OwnerStoreName from "./pages/OwnerStoreName";
 
 const App = () => {
   return (
@@ -10,6 +12,8 @@ const App = () => {
         <Route element={<GlobalLayout />}>
           <Route path="/" element={<Splash />} />
           <Route path="/owner-login" element={<OwnerLogin />} />
+          <Route path="/email-registration" element={<EmailRegistration />} />
+          <Route path="/owner-store-name" element={<OwnerStoreName />} />
           <Route path="/login" element={<OwnerLogin />} />
         </Route>
       </Routes>
