@@ -3,10 +3,9 @@ import { Outlet } from 'react-router-dom'
 
 const GlobalLayout = () => {
   return (
-    // 최대 너비 600px 제한
-    <div className="min-h-screen bg-[#000000]">
-      <div className="mx-auto min-h-screen w-full max-w-[600px] bg-white">
-        <main>
+    <div className="min-h-screen bg-[#9c9c9c]">
+      <div className="mx-auto min-h-screen w-full max-w-[430px] bg-white">
+        <main className="min-h-screen">
           <Outlet />
         </main>
       </div>
