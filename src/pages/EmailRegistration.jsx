@@ -2,6 +2,9 @@ import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import OwnerSignupHeader from "../components/auth/OwnerSignupHeader";
 import AuthButton from "../components/auth/AuthButton";
+import imageemail from "../assets/image-email.png";
+import imagewarning from "../assets/image-warning.png";
+import { FaArrowRight } from "react-icons/fa6";
 
 const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 const DUPLICATE_EMAIL = "ehowldpdy@naver.com";
@@ -22,44 +25,33 @@ const EmailRegistration = () => {
     if (emailError || focusedField) {
       return "border-[#2880EB]";
     }
-
     if (hasEmail) {
       return "border-black";
     }
-
     return "border-[#B8C0C8]";
   };
 
   const handleEmailChange = (event) => {
     const nextEmail = event.target.value;
-
     setEmail(nextEmail);
-
     if (nextEmail.trim() && !EMAIL_REGEX.test(nextEmail.trim())) {
       setEmailError("* 이메일 형식을 맞추어 작성해주세요.");
       return;
     }
-
     setEmailError("");
   };
 
   const handleNext = () => {
     const trimmedEmail = email.trim();
-
-    if (!trimmedEmail) {
-      return;
-    }
-
+    if (!trimmedEmail) return;
     if (!EMAIL_REGEX.test(trimmedEmail)) {
       setEmailError("* 이메일 형식을 맞추어 작성해주세요.");
       return;
     }
-
     if (isDuplicateEmail) {
       setEmailError("* 이미 등록된 이메일은 사용할 수 없어요.");
       return;
     }
-
     setIsSent(true);
   };
 
@@ -69,12 +61,10 @@ const EmailRegistration = () => {
 
   const handleComplete = () => {
     const isEmailVerified = false;
-
     if (!isEmailVerified) {
       setIsModalOpen(true);
       return;
     }
-
     navigate("/owner-store-name");
   };
 
@@ -84,25 +74,30 @@ const EmailRegistration = () => {
         <OwnerSignupHeader />
 
         <section className="flex flex-1 flex-col items-center px-[16px] pt-[147px] text-center">
-          <div className="relative h-[92px] w-[92px]">
-            <span className="absolute left-[11px] top-[4px] h-[82px] w-[82px] rotate-[-23deg] rounded-[18px] bg-gradient-to-br from-[#26C6FF] via-[#2382F2] to-[#9B6CFF] [clip-path:polygon(0_0,100%_50%,0_100%,24%_53%)]" />
-            <span className="absolute left-[27px] top-[36px] h-[14px] w-[45px] rotate-[4deg] rounded-full bg-[#126FDB]" />
+          <div className="mb-[8px] h-[175px] w-[175px]">
+            <img
+              src={imageemail}
+              alt="Email Sent"
+              className="h-full w-full object-contain"
+            />
           </div>
 
-          <h1 className="mt-[20px] text-[24px] leading-[36px] font-bold text-black">
+          <h1 className="text-[24px] leading-[34px] font-bold text-[#000000]">
             인증 이메일을 보냈어요!
           </h1>
-          <p className="mt-[8px] text-[14px] leading-[20px] font-semibold text-[#9DA4AB]">
+          <p className="mt-[8px] text-[16px] leading-[16px] font-medium text-[#7E858C]">
             메일함에서 '인증완료' 버튼을 눌러 인증해주세요.
           </p>
 
           <button
             type="button"
             onClick={handleResend}
-            className="mt-[18px] flex items-center gap-[8px] text-[16px] leading-[24px] font-semibold text-[#2880EB]"
+            className="mt-[18px] flex items-center justify-center gap-[6px] text-[18px] leading-none font-semibold text-[#3182F6]"
           >
-            다시보내기
-            <span aria-hidden="true">→</span>
+            <span>다시보내기</span>
+            <span className="flex items-center -translate-y-[2px]">
+              <FaArrowRight size={15} />
+            </span>
           </button>
         </section>
 
@@ -121,24 +116,30 @@ const EmailRegistration = () => {
               className="w-full rounded-t-[18px] bg-white px-[16px] pb-[calc(30px+env(safe-area-inset-bottom))] pt-[28px] text-center"
               onClick={(event) => event.stopPropagation()}
             >
-              <div className="mx-auto flex h-[38px] w-[38px] items-center justify-center rounded-full bg-[#8EABC4] text-[24px] font-bold text-white">
-                !
+              <div className="mx-auto h-[60px] w-[80px]">
+                <img
+                  src={imagewarning}
+                  alt="Warning"
+                  className="h-[full] w-full object-contain"
+                />
               </div>
 
-              <h2 className="mt-[28px] text-[22px] leading-[32px] font-bold text-black">
+              <h2 className="mt-[20px] text-[24px] leading-[34px] font-bold text-[#000000]">
                 아직 인증이 되지 않았어요!
               </h2>
-              <p className="mt-[4px] text-[12px] leading-[18px] font-semibold text-[#9DA4AB]">
+              <p className="mt-[4px] text-[14px] leading-[16px] font-medium text-[#7E858C]">
                 이메일이 오지 않았나요?
               </p>
 
               <button
                 type="button"
                 onClick={() => setIsModalOpen(false)}
-                className="mt-[22px] flex h-[60px] w-full items-center justify-center gap-[8px] rounded-[15px] bg-[#E4F0FF] text-[16px] leading-[24px] font-semibold text-[#2880EB]"
+                className="mt-[22px] flex h-[60px] w-full items-center justify-center gap-[8px] rounded-[15px] bg-[#E8F3FF] text-[16px] leading-[24px] font-medium text-[#3182F6]"
               >
-                인증 이메일 다시보내기
-                <span aria-hidden="true">→</span>
+                <span>인증 이메일 다시보내기</span>
+                <span className="flex items-center -translate-y-[2px]">
+                  <FaArrowRight size={15} />
+                </span>
               </button>
             </div>
           </div>
@@ -152,7 +153,7 @@ const EmailRegistration = () => {
       <OwnerSignupHeader />
 
       <section className="px-[16px] pt-[24px]">
-        <h1 className="text-[24px] leading-[36px] font-bold text-black">
+        <h1 className="text-[24px] leading-[41px] font-bold text-[#000000]">
           이메일을 입력해주세요.
         </h1>
 
@@ -162,7 +163,7 @@ const EmailRegistration = () => {
         >
           <label
             htmlFor="owner-signup-email"
-            className="block text-[12px] leading-[18px] font-semibold text-[#9DA4AB]"
+            className="block text-[12px] leading-[20px] font-medium text-[#7E858C]"
           >
             이메일
           </label>
@@ -178,7 +179,7 @@ const EmailRegistration = () => {
               onFocus={() => setFocusedField(true)}
               onBlur={() => setFocusedField(false)}
               placeholder="djwjfkrh@naver.com"
-              className="h-[39px] min-w-0 flex-1 bg-transparent text-[24px] leading-[36px] font-semibold text-black placeholder:text-[#CAD0D6] outline-none"
+              className="h-[39px] min-w-0 flex-1 bg-transparent text-[28px] leading-[28px] font-normal text-[#000000] placeholder:text-[#CAD0D6] outline-none"
               autoComplete="email"
             />
 
@@ -199,7 +200,7 @@ const EmailRegistration = () => {
           </div>
 
           {emailError && (
-            <p className="mt-[10px] text-[14px] leading-[20px] font-medium text-[#F06F6B]">
+            <p className="mt-[10px] text-[14px] leading-[20px] font-normal text-[#C74F44]">
               {emailError}
             </p>
           )}

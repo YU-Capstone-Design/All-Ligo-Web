@@ -5,6 +5,7 @@ import OwnerLogin from "./pages/OwnerLogin";
 import EmailRegistration from "./pages/EmailRegistration";
 import OwnerStoreName from "./pages/OwnerStoreName";
 import OwnerStoreLink from "./pages/OwnerStoreLink";
+import OwnerStoreLocation from "./pages/OwnerStoreLocation";
 
 const App = () => {
   return (
@@ -16,6 +17,10 @@ const App = () => {
           <Route path="/email-registration" element={<EmailRegistration />} />
           <Route path="/owner-store-name" element={<OwnerStoreName />} />
           <Route path="/owner-store-link" element={<OwnerStoreLink />} />
+          <Route
+            path="/owner-store-location"
+            element={<OwnerStoreLocation />}
+          />
           <Route path="/login" element={<OwnerLogin />} />
         </Route>
       </Routes>

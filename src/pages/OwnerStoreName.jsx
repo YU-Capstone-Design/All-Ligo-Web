@@ -35,7 +35,7 @@ const OwnerStoreName = () => {
       <OwnerSignupHeader />
 
       <section className="px-[16px] pt-[24px]">
-        <h1 className="text-[24px] leading-[36px] font-bold text-black">
+        <h1 className="text-[24px] leading-[41px] font-bold text-[#000000]">
           가게명을 입력해주세요.
         </h1>
 
@@ -45,7 +45,7 @@ const OwnerStoreName = () => {
         >
           <label
             htmlFor="owner-store-name"
-            className="block text-[14px] leading-[20px] font-semibold text-[#9DA4AB]"
+            className="block text-[12px] leading-[20px] font-medium text-[#7E858C]"
           >
             가게명
           </label>
@@ -61,7 +61,7 @@ const OwnerStoreName = () => {
               onFocus={() => setIsFocused(true)}
               onBlur={() => setIsFocused(false)}
               placeholder="ex) 장군제육"
-              className="h-[39px] min-w-0 flex-1 bg-transparent text-[24px] leading-[36px] font-semibold text-black placeholder:text-[#CAD0D6] outline-none"
+              className="h-[39px] min-w-0 flex-1 bg-transparent text-[28px] leading-[28px] font-normal text-[#000000] placeholder:text-[#CAD0D6] outline-none"
               autoComplete="organization"
             />
 
