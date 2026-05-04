@@ -1,8 +1,11 @@
-import React from 'react'
-import { BrowserRouter, Route, Routes } from 'react-router-dom'
-import GlobalLayout from './layout/GlobalLayout'
-import Splash from './pages/Splash'
-import Login from './pages/Login'
+import { BrowserRouter, Route, Routes } from "react-router-dom";
+import GlobalLayout from "./layout/GlobalLayout";
+import Splash from "./pages/Splash";
+import OwnerLogin from "./pages/OwnerLogin";
+import EmailRegistration from "./pages/OwnerMembership/EmailRegistration";
+import OwnerStoreName from "./pages/OwnerMembership/OwnerStoreName";
+import OwnerStoreLink from "./pages/OwnerMembership/OwnerStoreLink";
+import OwnerStoreLocation from "./pages/OwnerMembership/OwnerStoreLocation";
 
 const App = () => {
   return (
@@ -10,11 +13,19 @@ const App = () => {
       <Routes>
         <Route element={<GlobalLayout />}>
           <Route path="/" element={<Splash />} />
-          <Route path="/login" element={<Login/>}/>
+          <Route path="/owner-login" element={<OwnerLogin />} />
+          <Route path="/email-registration" element={<EmailRegistration />} />
+          <Route path="/owner-store-name" element={<OwnerStoreName />} />
+          <Route path="/owner-store-link" element={<OwnerStoreLink />} />
+          <Route
+            path="/owner-store-location"
+            element={<OwnerStoreLocation />}
+          />
+          <Route path="/login" element={<OwnerLogin />} />
         </Route>
       </Routes>
     </BrowserRouter>
-  )
-}
+  );
+};
 
-export default App
+export default App;
