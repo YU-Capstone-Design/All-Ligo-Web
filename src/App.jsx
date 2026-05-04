@@ -2,10 +2,10 @@ import { BrowserRouter, Route, Routes } from "react-router-dom";
 import GlobalLayout from "./layout/GlobalLayout";
 import Splash from "./pages/Splash";
 import OwnerLogin from "./pages/OwnerLogin";
-import EmailRegistration from "./pages/EmailRegistration";
-import OwnerStoreName from "./pages/OwnerStoreName";
-import OwnerStoreLink from "./pages/OwnerStoreLink";
-import OwnerStoreLocation from "./pages/OwnerStoreLocation";
+import EmailRegistration from "./pages/OwnerMembership/EmailRegistration";
+import OwnerStoreName from "./pages/OwnerMembership/OwnerStoreName";
+import OwnerStoreLink from "./pages/OwnerMembership/OwnerStoreLink";
+import OwnerStoreLocation from "./pages/OwnerMembership/OwnerStoreLocation";
 
 const App = () => {
   return (

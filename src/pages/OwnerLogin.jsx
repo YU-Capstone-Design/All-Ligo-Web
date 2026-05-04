@@ -1,8 +1,10 @@
 import { useRef, useState } from "react";
+import { useNavigate } from "react-router-dom";
 import OwnerLoginHeader from "../components/auth/OwnerLoginHeader";
 import AuthButton from "../components/auth/AuthButton";
 
 const OwnerLogin = () => {
+  const navigate = useNavigate();
   const passwordInputRef = useRef(null);
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -27,7 +29,6 @@ const OwnerLogin = () => {
     if (email.trim() === "" || password.trim() === "") {
       return;
     }
-
     setHasError(true);
   };
 
@@ -95,12 +96,12 @@ const OwnerLogin = () => {
                 }}
                 onFocus={() => setFocusedField("email")}
                 onBlur={() => setFocusedField(null)}
-                placeholder=""
-                className="h-[39px] min-w-0 flex-1 bg-transparent text-[24px] leading-[36px] font-semibold text-black placeholder:text-[#CAD0D6] outline-none"
+                placeholder="djwjfkrh@naver.com"
+                className="h-[39px] min-w-0 flex-1 bg-transparent text-[28px] leading-[28px] font-normal text-black placeholder:text-[#CAD0D6] outline-none"
                 autoComplete="email"
               />
 
-              {email && focusedField === "email" && (
+              {email && focusedField === "email" && !hasError && (
                 <button
                   type="button"
                   onMouseDown={(event) => event.preventDefault()}
@@ -146,7 +147,6 @@ const OwnerLogin = () => {
 
                   if (event.key === "Backspace") {
                     event.preventDefault();
-
                     if (start !== end) {
                       updatePassword(
                         `${password.slice(0, start)}${password.slice(end)}`,
@@ -154,7 +154,6 @@ const OwnerLogin = () => {
                       );
                       return;
                     }
-
                     if (start > 0) {
                       updatePassword(
                         `${password.slice(0, start - 1)}${password.slice(end)}`,
@@ -165,7 +164,6 @@ const OwnerLogin = () => {
 
                   if (event.key === "Delete") {
                     event.preventDefault();
-
                     if (start !== end) {
                       updatePassword(
                         `${password.slice(0, start)}${password.slice(end)}`,
@@ -173,7 +171,6 @@ const OwnerLogin = () => {
                       );
                       return;
                     }
-
                     if (start < password.length) {
                       updatePassword(
                         `${password.slice(0, start)}${password.slice(
@@ -192,12 +189,12 @@ const OwnerLogin = () => {
                 }}
                 onFocus={() => setFocusedField("password")}
                 onBlur={() => setFocusedField(null)}
-                placeholder=""
-                className="h-[39px] min-w-0 flex-1 bg-transparent text-[24px] leading-[36px] font-semibold text-black placeholder:text-[#CAD0D6] outline-none"
+                placeholder="**********"
+                className="h-[39px] min-w-0 flex-1 bg-transparent text-[28px] leading-[28px] font-bold text-black placeholder:text-[#CAD0D6] outline-none"
                 autoComplete="current-password"
               />
 
-              {password && focusedField === "password" && (
+              {password && focusedField === "password" && !hasError && (
                 <button
                   type="button"
                   onMouseDown={(event) => event.preventDefault()}
@@ -215,10 +212,21 @@ const OwnerLogin = () => {
           </div>
 
           {hasError && (
-            <p className="mt-[10px] text-[14px] leading-[20px] font-regular text-[#C74F44]">
+            <p className="mt-[10px] text-[14px] leading-[20px] font-normal text-[#C74F44]">
               * 아이디 또는 비밀번호가 일치하지 않습니다.
             </p>
           )}
+
+          <div className="mt-[32px] flex justify-center text-[14px] leading-[20px] font-medium text-[#7E858C]">
+            <span>처음 방문하시나요?</span>
+            <button
+              type="button"
+              onClick={() => navigate("/email-registration")}
+              className="ml-[8px] text-[#3182F6] underline underline-offset-4"
+            >
+              회원가입
+            </button>
+          </div>
         </form>
       </section>
 

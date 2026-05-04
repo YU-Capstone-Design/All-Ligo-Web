@@ -1,9 +1,9 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import OwnerSignupHeader from "../components/auth/OwnerSignupHeader";
-import AuthButton from "../components/auth/AuthButton";
-import imageemail from "../assets/image-email.png";
-import imagewarning from "../assets/image-warning.png";
+import OwnerSignupHeader from "../../components/auth/OwnerSignupHeader";
+import AuthButton from "../../components/auth/AuthButton";
+import imageemail from "../../assets/image-email.png";
+import imagewarning from "../../assets/image-warning.png";
 import { FaArrowRight } from "react-icons/fa6";
 
 const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -85,14 +85,14 @@ const EmailRegistration = () => {
           <h1 className="text-[24px] leading-[34px] font-bold text-[#000000]">
             인증 이메일을 보냈어요!
           </h1>
-          <p className="mt-[8px] text-[16px] leading-[16px] font-medium text-[#7E858C]">
+          <p className="mt-[12px] text-[16px] leading-[16px] font-medium text-[#7E858C]">
             메일함에서 '인증완료' 버튼을 눌러 인증해주세요.
           </p>
 
           <button
             type="button"
             onClick={handleResend}
-            className="mt-[18px] flex items-center justify-center gap-[6px] text-[18px] leading-none font-semibold text-[#3182F6]"
+            className="mt-[23px] flex items-center justify-center gap-[6px] text-[18px] leading-none font-semibold text-[#3182F6]"
           >
             <span>다시보내기</span>
             <span className="flex items-center -translate-y-[2px]">
@@ -116,7 +116,7 @@ const EmailRegistration = () => {
               className="w-full rounded-t-[18px] bg-white px-[16px] pb-[calc(30px+env(safe-area-inset-bottom))] pt-[28px] text-center"
               onClick={(event) => event.stopPropagation()}
             >
-              <div className="mx-auto h-[60px] w-[80px]">
+              <div className="mx-auto h-[60px] w-[70px]">
                 <img
                   src={imagewarning}
                   alt="Warning"
@@ -124,7 +124,7 @@ const EmailRegistration = () => {
                 />
               </div>
 
-              <h2 className="mt-[20px] text-[24px] leading-[34px] font-bold text-[#000000]">
+              <h2 className="mt-[10px] text-[24px] leading-[34px] font-bold text-[#000000]">
                 아직 인증이 되지 않았어요!
               </h2>
               <p className="mt-[4px] text-[14px] leading-[16px] font-medium text-[#7E858C]">

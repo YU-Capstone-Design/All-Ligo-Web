@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import OwnerSignupHeader from "../components/auth/OwnerSignupHeader";
-import AuthButton from "../components/auth/AuthButton";
+import OwnerSignupHeader from "../../components/auth/OwnerSignupHeader";
+import AuthButton from "../../components/auth/AuthButton";
 
 const URL_REGEX = /^(https?:\/\/)([\w-]+\.)+[\w-]+(\/.*)?$/i;
 

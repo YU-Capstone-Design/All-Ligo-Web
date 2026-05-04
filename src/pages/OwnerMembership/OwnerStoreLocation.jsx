@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from "react";
-import OwnerSignupHeader from "../components/auth/OwnerSignupHeader";
-import AuthButton from "../components/auth/AuthButton";
+import OwnerSignupHeader from "../../components/auth/OwnerSignupHeader";
+import AuthButton from "../../components/auth/AuthButton";
 import { CiSearch } from "react-icons/ci";
 
 const DEFAULT_CENTER = { lat: 35.8338, lng: 128.7597 };
