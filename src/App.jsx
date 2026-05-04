@@ -6,13 +6,15 @@ import EmailRegistration from "./pages/OwnerMembership/EmailRegistration";
 import OwnerStoreName from "./pages/OwnerMembership/OwnerStoreName";
 import OwnerStoreLink from "./pages/OwnerMembership/OwnerStoreLink";
 import OwnerStoreLocation from "./pages/OwnerMembership/OwnerStoreLocation";
+import Thumbnail from "./pages/Thumbnail";
 
 const App = () => {
   return (
     <BrowserRouter>
       <Routes>
         <Route element={<GlobalLayout />}>
-          <Route path="/" element={<Splash />} />
+          <Route path='/' element={<Thumbnail/>}/>
+          <Route path="/splash" element={<Splash />} />
           <Route path="/owner-login" element={<OwnerLogin />} />
           <Route path="/email-registration" element={<EmailRegistration />} />
           <Route path="/owner-store-name" element={<OwnerStoreName />} />
