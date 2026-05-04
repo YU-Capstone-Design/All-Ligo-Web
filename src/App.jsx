@@ -8,6 +8,7 @@ import OwnerStoreLink from "./pages/OwnerMembership/OwnerStoreLink";
 import OwnerStoreLocation from "./pages/OwnerMembership/OwnerStoreLocation";
 import Thumbnail from "./pages/Thumbnail";
 import OwnerPassword from "./pages/OwnerMembership/OwnerPassword";
+import SuccessPage from "./pages/OwnerMembership/SuccessPage";
 
 const App = () => {
   return (
@@ -26,6 +27,7 @@ const App = () => {
           />
           <Route path="/login" element={<OwnerLogin />} />
           <Route path="/owner-password" element={<OwnerPassword />} />
+          <Route path="/success-page" element={<SuccessPage />} />
         </Route>
       </Routes>
     </BrowserRouter>
