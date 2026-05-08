@@ -1,15 +1,12 @@
 import React from 'react'
-import { useNavigate } from 'react-router-dom'
 import arrowup from '../../assets/arrow-up.svg'
 
-const MakeHeader = () => {
-  const navigate = useNavigate()
-
+const MakeHeader = ({ onBack }) => {
   return (
     <div className="flex flex-row items-center py-[11px]">
       <button
         type="button"
-        onClick={() => navigate(-1)}
+        onClick={onBack}
         className="pl-[16px]"
       >
         <img src={arrowup} alt="뒤로가기" />
