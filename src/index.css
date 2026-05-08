@@ -36,3 +36,13 @@
   animation: pulse-strong 2s infinite ease-in-out;
   position: relative;
 }
+
+
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+
+.no-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
