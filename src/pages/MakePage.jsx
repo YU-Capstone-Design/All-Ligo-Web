@@ -3,12 +3,18 @@ import { useNavigate } from 'react-router-dom'
 import MakeHeader from '../components/make/MakeHeader'
 import FileUpload from '../components/make/FileUpload'
 import Keyword from '../components/make/Keyword'
+import TypeSelect from '../components/make/TypeSelect'
 
 const MakePage = () => {
   const [step, setStep] = useState('fileUpload')
   const navigate = useNavigate()
 
   const handleBack = () => {
+    if (step === 'typeSelect') {
+      setStep('keyword')
+      return
+    }
+
     if (step === 'keyword') {
       setStep('fileUpload')
       return
@@ -18,7 +24,7 @@ const MakePage = () => {
   }
 
   return (
-    <div className="h-[100dvh] flex flex-col overflow-hidden">
+    <div className="relative h-[100dvh] flex flex-col overflow-hidden">
       <MakeHeader onBack={handleBack} />
 
       <div className="flex-1 min-h-0">
@@ -26,7 +32,11 @@ const MakePage = () => {
           <FileUpload onNext={() => setStep('keyword')} />
         )}
 
-        {step === 'keyword' && <Keyword />}
+        {step === 'keyword' && (
+          <Keyword onNext={() => setStep('typeSelect')} />
+        )}
+
+        {step === 'typeSelect' && <TypeSelect />}
       </div>
     </div>
   )
