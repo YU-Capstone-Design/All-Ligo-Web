@@ -10,6 +10,7 @@ import Thumbnail from "./pages/Thumbnail";
 import OwnerPassword from "./pages/OwnerMembership/OwnerPassword";
 import SuccessPage from "./pages/OwnerMembership/SuccessPage";
 import MakePage from "./pages/MakePage";
+import MakeComplete from "./pages/MakeComplete";
 
 const App = () => {
   return (
@@ -30,6 +31,7 @@ const App = () => {
           <Route path="/owner-password" element={<OwnerPassword />} />
           <Route path="/success-page" element={<SuccessPage />} />
           <Route path='/makepage' element={<MakePage/>} />
+           <Route path='/makecomplete' element={<MakeComplete/>} />
         </Route>
       </Routes>
     </BrowserRouter>
