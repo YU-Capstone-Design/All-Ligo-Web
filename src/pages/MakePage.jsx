@@ -5,12 +5,20 @@ import FileUpload from '../components/make/FileUpload'
 import Keyword from '../components/make/Keyword'
 import TypeSelect from '../components/make/TypeSelect'
 import Title from '../components/make/Title'
+import Upload from '../components/make/Upload'
 
 const MakePage = () => {
   const [step, setStep] = useState('fileUpload')
+  const [title, setTitle] = useState('')
+
   const navigate = useNavigate()
 
   const handleBack = () => {
+    if (step === 'upload') {
+      setStep('title')
+      return
+    }
+
     if (step === 'title') {
       setStep('typeSelect')
       return
@@ -46,7 +54,17 @@ const MakePage = () => {
           <TypeSelect onNext={() => setStep('title')} />
         )}
 
-        {step === 'title' && <Title />}
+        {step === 'title' && (
+          <Title
+            value={title}
+            onChange={(e) => setTitle(e.target.value)}
+            onCreate={() => setStep('upload')}
+          />
+        )}
+
+        {step === 'upload' && (
+          <Upload />
+        )}
       </div>
     </div>
   )
