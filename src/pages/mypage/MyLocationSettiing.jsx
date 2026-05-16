@@ -384,14 +384,6 @@ const MyLocationSetting = () => {
         }`}
       >
         <div ref={mapNodeRef} className="h-full w-full" />
-        <button
-          type="button"
-          onClick={useCurrentLocation}
-          className="absolute bottom-[18px] right-[16px] z-[10] flex h-[42px] w-[42px] items-center justify-center rounded-full bg-white text-[18px] font-bold text-[#5D6670] shadow-md"
-          aria-label="현재 위치"
-        >
-          ⌾
-        </button>
       </div>
 
       {isSearchMode && (
