@@ -15,6 +15,7 @@ import MakeComplete from "./pages/MakeComplete";
 
 import MyPage from "./pages/mypage/Mypage";
 import CouponRegistration from "./pages/mypage/CouponRegistration";
+import CouponModify from "./pages/mypage/CouponModify";
 import ProfileEdit from "./pages/mypage/ProfileEdit";
 import MyLocationSetting from "./pages/mypage/MyLocationSettiing";
 
@@ -42,6 +43,7 @@ const App = () => {
 
           <Route path="/mypage" element={<MyPage />} />
           <Route path="/mypage/coupons/new" element={<CouponRegistration />} />
+          <Route path="/mypage/coupons/modify" element={<CouponModify />} />
           <Route path="/mypage/profile" element={<ProfileEdit />} />
           <Route path="/mypage/location" element={<MyLocationSetting />} />
         </Route>

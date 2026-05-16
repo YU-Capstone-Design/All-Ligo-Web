@@ -3,6 +3,8 @@ import { useNavigate } from "react-router-dom";
 import arrowup from "../../assets/arrow-up.svg";
 import AuthButton from "../../components/auth/AuthButton";
 
+import { FiSearch } from "react-icons/fi";
+
 const DEFAULT_CENTER = { lat: 35.8338, lng: 128.7597 };
 
 const loadKakaoMap = () => {
@@ -227,9 +229,21 @@ const MyLocationSetting = () => {
             center,
             level: 3,
           });
-          const marker = new kakao.maps.Marker({
+
+          const overlayContent = document.createElement("div");
+          overlayContent.style.transform = "translate(-50%, -100%)";
+          overlayContent.innerHTML = `
+            <div style="color: #2880EB; font-size: 44px; display: flex; align-items: center; justify-content: center;">
+              <svg stroke="currentColor" fill="currentColor" stroke-width="0" viewBox="0 0 20 20" height="1em" width="1em" xmlns="http://www.w3.org/2000/svg">
+                <path fill-rule="evenodd" d="M5.05 4.05a7 7 0 119.9 9.9L10 18.9l-4.95-4.95a7 7 0 010-9.9zM10 11a2 2 0 100-4 2 2 0 000 4z" clip-rule="evenodd"></path>
+              </svg>
+            </div>
+          `;
+
+          const marker = new kakao.maps.CustomOverlay({
             position: center,
-            map,
+            content: overlayContent,
+            map: map,
           });
 
           mapRef.current = map;
@@ -323,7 +337,7 @@ const MyLocationSetting = () => {
         >
           <img src={arrowup} alt="뒤로가기" />
         </button>
-        <div className="w-[314px] text-center text-[14px] leading-[20px]">
+        <div className="w-[314px] text-center text-[16px] leading-[20px]">
           위치 설정
         </div>
       </header>
@@ -331,11 +345,10 @@ const MyLocationSetting = () => {
       <div className="px-[16px] pt-[14px]">
         <div className="flex h-[40px] items-center gap-[8px] rounded-[10px] bg-[#F3F5F7] px-[12px]">
           <span
-            className="relative h-[22px] w-[22px] shrink-0"
+            className="flex h-[25px] w-[25px] shrink-0 items-center justify-center"
             aria-hidden="true"
           >
-            <span className="absolute left-[3px] top-[3px] h-[12px] w-[12px] rounded-full border-2 border-[#9DA4AB]" />
-            <span className="absolute left-[15px] top-[15px] h-[7px] w-[2px] rotate-[-45deg] rounded-full bg-[#9DA4AB]" />
+            <FiSearch size={20} className="text-[#9DA4AB]" />
           </span>
           <input
             value={searchText}
@@ -352,7 +365,7 @@ const MyLocationSetting = () => {
               }
             }}
             placeholder="지번, 도로명, 건물명으로 검색"
-            className="min-w-0 flex-1 bg-transparent text-[14px] font-semibold outline-none placeholder:text-[#B8C0C8]"
+            className="min-w-0 flex-1 bg-transparent text-[15px] font-normal outline-none placeholder:text-[#7E858C]"
           />
         </div>
 
@@ -367,24 +380,16 @@ const MyLocationSetting = () => {
         className={`relative mt-[14px] overflow-hidden ${
           isSearchMode
             ? "h-0 min-h-0 opacity-0 pointer-events-none"
-            : "h-[calc(100dvh-250px)] min-h-[360px]"
+            : "h-[calc(100dvh-290px)] min-h-[280px]"
         }`}
       >
         <div ref={mapNodeRef} className="h-full w-full" />
-        <button
-          type="button"
-          onClick={useCurrentLocation}
-          className="absolute bottom-[18px] right-[16px] z-[10] flex h-[42px] w-[42px] items-center justify-center rounded-full bg-white text-[18px] font-bold text-[#5D6670] shadow-md"
-          aria-label="현재 위치"
-        >
-          ⌾
-        </button>
       </div>
 
       {isSearchMode && (
         <section className="flex flex-1 flex-col bg-white">
           {searchText.trim() === "" && searchResults.length === 0 ? (
-            <div className="flex flex-1 items-center justify-center pb-[160px] text-center text-[15px] font-semibold leading-[24px] text-[#C1C7CE]">
+            <div className="flex flex-1 items-center justify-center pb-[400px] text-center text-[15px] font-semibold leading-[24px] text-[#C1C7CE]">
               가게의 도로명 혹은
               <br />
               지번 주소를 입력해주세요.
@@ -398,11 +403,11 @@ const MyLocationSetting = () => {
                   onClick={() => selectSearchResult(place)}
                   className="block w-full py-[13px] text-left"
                 >
-                  <p className="text-[15px] font-bold text-[#2A2D31]">
+                  <p className="text-[16px] font-bold text-[#3A3A3A]">
                     {place.title}
                   </p>
                   {place.subtitle && (
-                    <p className="mt-[4px] text-[13px] font-semibold text-[#747E88]">
+                    <p className="mt-[4px] text-[14px] font-normal text-[#3A3A3A]">
                       {place.subtitle}
                     </p>
                   )}
@@ -414,16 +419,18 @@ const MyLocationSetting = () => {
       )}
 
       {!isSearchMode && (
-        <section className="bg-white px-[16px] pb-[calc(30px+env(safe-area-inset-bottom))] pt-[20px]">
-          <h2 className="text-[17px] font-bold text-[#2A2D31]">
-            {selected.title}
-          </h2>
-          {selected.subtitle && (
-            <p className="mt-[8px] text-[14px] font-semibold text-[#747E88]">
-              {selected.subtitle}
-            </p>
-          )}
-          <div className="mt-[20px]">
+        <section className="bg-white px-[16px] pb-[calc(10px+env(safe-area-inset-bottom))] pt-[16px] flex-1 flex flex-col justify-between">
+          <div>
+            <h2 className="text-[20px] font-bold text-[#3A3A3A] leading-tight">
+              {selected.title}
+            </h2>
+            {selected.subtitle && (
+              <p className="mt-[12px] text-[16px] font-normal text-[#3A3A3A] leading-tight">
+                {selected.subtitle}
+              </p>
+            )}
+          </div>
+          <div className="mb-[18px]">
             <AuthButton isActive onClick={handleSelect}>
               선택하기
             </AuthButton>

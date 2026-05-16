@@ -27,7 +27,7 @@ const BottomNavigation = () => {
   const safeActiveIndex = activeIndex === -1 ? 3 : activeIndex;
 
   return (
-    <div className="fixed bottom-0 left-0 right-0 z-50 px-[24px] pb-[calc(14px+env(safe-area-inset-bottom))] pt-[10px] bg-transparent pointer-events-none">
+    <div className="fixed bottom-0 left-0 right-0 z-50 px-[24px] pb-[calc(32px+env(safe-area-inset-bottom))] pt-[10px] bg-transparent pointer-events-none">
       <nav className="relative mx-auto flex h-[72px] max-w-[400px] items-center justify-between rounded-[36px] bg-white px-[6px] shadow-[0_8px_30px_rgba(0,0,0,0.08)] pointer-events-auto border border-gray-100/50">
         <div
           className="absolute top-[5px] bottom-[5px] left-[2px] right-[2px] pointer-events-none z-0 transition-transform duration-300 ease-out"

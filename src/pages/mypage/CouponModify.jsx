@@ -20,16 +20,14 @@ const PageHeader = ({ title }) => {
   );
 };
 
-const CouponRegistration = () => {
+const CouponModify = () => {
+  const fileInputRef = useRef(null);
+
   const [menuName, setMenuName] = useState("");
   const [discountRate, setDiscountRate] = useState("");
   const [imagePreview, setImagePreview] = useState(null);
-  const fileInputRef = useRef(null);
 
-  const canSubmit =
-    menuName.trim() !== "" &&
-    discountRate.trim() !== "" &&
-    imagePreview !== null;
+  const canSubmit = menuName.trim() !== "" && discountRate.trim() !== "";
 
   const handleImageClick = () => {
     fileInputRef.current?.click();
@@ -38,24 +36,21 @@ const CouponRegistration = () => {
   const handleImageChange = (event) => {
     const file = event.target.files[0];
     if (file) {
-      const reader = new FileReader();
-      reader.onloadend = () => {
-        setImagePreview(reader.result);
-      };
-      reader.readAsDataURL(file);
+      const imageUrl = URL.createObjectURL(file);
+      setImagePreview(imageUrl);
     }
   };
 
   return (
     <div className="min-h-[100dvh] bg-white flex flex-col">
-      <PageHeader title="쿠폰 등록하기" />
+      <PageHeader title="쿠폰 수정하기" />
 
       <section className="px-[16px] pt-[28px]">
         <input
           type="file"
-          accept="image/*"
           ref={fileInputRef}
           onChange={handleImageChange}
+          accept="image/*"
           className="hidden"
         />
 
@@ -85,7 +80,7 @@ const CouponRegistration = () => {
         </button>
 
         <label
-          className="mt-[48px] block text-[14px] font-medium text-[#424950]"
+          className="mt-[48px] block text-[14px] font-semibold text-[#5D6670]"
           htmlFor="coupon-menu-name"
         >
           메뉴명
@@ -95,11 +90,11 @@ const CouponRegistration = () => {
           value={menuName}
           onChange={(event) => setMenuName(event.target.value)}
           placeholder="할인할 메뉴 이름을 입력해주세요"
-          className="mt-[12px] h-[56px] w-full rounded-[10px] bg-[#F7F8FA] px-[16px] text-[16px] font-medium outline-none placeholder:text-[#03183275]"
+          className="mt-[12px] h-[56px] w-full rounded-[10px] bg-[#F7F8FA] px-[16px] text-[15px] font-semibold outline-none placeholder:text-[#C1C7CE]"
         />
 
         <label
-          className="mt-[28px] block text-[14px] font-medium text-[#424950]"
+          className="mt-[28px] block text-[14px] font-semibold text-[#5D6670]"
           htmlFor="coupon-discount-rate"
         >
           할인율
@@ -116,16 +111,16 @@ const CouponRegistration = () => {
             }
             placeholder="할인율을 입력해주세요"
             inputMode="numeric"
-            className="min-w-0 flex-1 bg-transparent text-[16px] font-medium outline-none placeholder:text-[#03183275]"
+            className="min-w-0 flex-1 bg-transparent text-[15px] font-semibold outline-none placeholder:text-[#C1C7CE]"
           />
         </div>
       </section>
 
       <div className="mt-auto px-[16px] pb-[calc(54px+env(safe-area-inset-bottom))]">
-        <AuthButton isActive={canSubmit}>등록하기</AuthButton>
+        <AuthButton isActive={canSubmit}>수정하기</AuthButton>
       </div>
     </div>
   );
 };
 
-export default CouponRegistration;
+export default CouponModify;
