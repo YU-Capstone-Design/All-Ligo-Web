@@ -9,15 +9,22 @@ import OwnerStoreLocation from "./pages/OwnerMembership/OwnerStoreLocation";
 import Thumbnail from "./pages/Thumbnail";
 import OwnerPassword from "./pages/OwnerMembership/OwnerPassword";
 import SuccessPage from "./pages/OwnerMembership/SuccessPage";
+
 import MakePage from "./pages/MakePage";
 import MakeComplete from "./pages/MakeComplete";
+
+import MyPage from "./pages/mypage/Mypage";
+import CouponRegistration from "./pages/mypage/CouponRegistration";
+import CouponModify from "./pages/mypage/CouponModify";
+import ProfileEdit from "./pages/mypage/ProfileEdit";
+import MyLocationSetting from "./pages/mypage/MyLocationSettiing";
 
 const App = () => {
   return (
     <BrowserRouter>
       <Routes>
         <Route element={<GlobalLayout />}>
-          <Route path='/' element={<Thumbnail/>}/>
+          <Route path="/" element={<Thumbnail />} />
           <Route path="/splash" element={<Splash />} />
           <Route path="/owner-login" element={<OwnerLogin />} />
           <Route path="/email-registration" element={<EmailRegistration />} />
@@ -30,8 +37,15 @@ const App = () => {
           <Route path="/login" element={<OwnerLogin />} />
           <Route path="/owner-password" element={<OwnerPassword />} />
           <Route path="/success-page" element={<SuccessPage />} />
-          <Route path='/makepage' element={<MakePage/>} />
-           <Route path='/makecomplete' element={<MakeComplete/>} />
+
+          <Route path="/makepage" element={<MakePage />} />
+          <Route path="/makecomplete" element={<MakeComplete />} />
+
+          <Route path="/mypage" element={<MyPage />} />
+          <Route path="/mypage/coupons/new" element={<CouponRegistration />} />
+          <Route path="/mypage/coupons/modify" element={<CouponModify />} />
+          <Route path="/mypage/profile" element={<ProfileEdit />} />
+          <Route path="/mypage/location" element={<MyLocationSetting />} />
         </Route>
       </Routes>
     </BrowserRouter>
