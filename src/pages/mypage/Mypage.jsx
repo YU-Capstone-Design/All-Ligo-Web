@@ -13,12 +13,6 @@ import setup from "../../assets/set-up.png";
 import pencil from "../../assets/pencil.png";
 import appname from "../../assets/app-name.png";
 
-const coupons = [
-  { id: 1, title: "돼지 국밥 오픈 할인", discount: "20%" },
-  { id: 2, title: "돼지 국밥 오픈 할인", discount: "20%" },
-  { id: 3, title: "돼지 국밥 오픈 할인", discount: "20%" },
-];
-
 const CouponImage = () => (
   <div className="h-[74px] w-[74px] shrink-0 overflow-hidden rounded-[12px] bg-[#d8d0c5]">
     <div className="h-full w-full bg-[radial-gradient(circle_at_48%_42%,#f7eee2_0_13%,#a77d62_14%_27%,#f4e7d7_28%_34%,#6b4a38_35%_44%,#caa58b_45%_58%,#e8dfd5_59%_100%)]" />
@@ -28,6 +22,11 @@ const CouponImage = () => (
 const MyPage = () => {
   const navigate = useNavigate();
   const [activeMenuId, setActiveMenuId] = useState(null);
+  const [couponList, setCouponList] = useState([
+    { id: 1, title: "돼지 국밥 오픈 할인", discount: "20%" },
+    { id: 2, title: "돼지 국밥 오픈 할인", discount: "20%" },
+    { id: 3, title: "돼지 국밥 오픈 할인", discount: "20%" },
+  ]);
 
   const handleDelete = (id) => {
     if (window.confirm("정말 이 쿠폰을 삭제하시겠습니까?")) {
@@ -110,7 +109,7 @@ const MyPage = () => {
         </button>
 
         <div className="mt-[14px] flex flex-col gap-[12px]">
-          {coupons.map((coupon) => (
+          {couponList.map((coupon) => (
             <article
               key={coupon.id}
               className="relative flex rounded-[16px] bg-white p-[12px] shadow-[0_8px_20px_rgba(23,35,53,0.08)]"

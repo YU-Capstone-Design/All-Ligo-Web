@@ -217,11 +217,4 @@ const ProfileEdit = () => {
   );
 };
 
-const LocationPinIcon = () => (
-  <span className="relative h-[24px] w-[24px] shrink-0" aria-hidden="true">
-    <span className="absolute left-[4px] top-[2px] h-[16px] w-[16px] rotate-45 rounded-[50%_50%_50%_8px] bg-[#2880EB]" />
-    <span className="absolute left-[9px] top-[7px] h-[6px] w-[6px] rounded-full bg-white" />
-  </span>
-);
-
 export default ProfileEdit;
