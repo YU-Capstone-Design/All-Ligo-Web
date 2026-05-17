@@ -18,13 +18,14 @@ import CouponRegistration from "./pages/mypage/CouponRegistration";
 import CouponModify from "./pages/mypage/CouponModify";
 import ProfileEdit from "./pages/mypage/ProfileEdit";
 import MyLocationSetting from "./pages/mypage/MyLocationSettiing";
+import FirstScreen from "./pages/FirstScreen";
 
 const App = () => {
   return (
     <BrowserRouter>
       <Routes>
         <Route element={<GlobalLayout />}>
-          <Route path="/" element={<Thumbnail />} />
+          <Route path="/thumbnail" element={<Thumbnail />} />
           <Route path="/splash" element={<Splash />} />
           <Route path="/owner-login" element={<OwnerLogin />} />
           <Route path="/email-registration" element={<EmailRegistration />} />
@@ -46,6 +47,7 @@ const App = () => {
           <Route path="/mypage/coupons/modify" element={<CouponModify />} />
           <Route path="/mypage/profile" element={<ProfileEdit />} />
           <Route path="/mypage/location" element={<MyLocationSetting />} />
+          <Route path="/" element={<FirstScreen/>}/>
         </Route>
       </Routes>
     </BrowserRouter>
