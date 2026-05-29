@@ -39,6 +39,19 @@ const OwnerPassword = () => {
     if (!isButtonActive || isSigningUp) return
 
     const draft = getOwnerSignupDraft()
+    const requiredSignupFields = [
+      draft.email,
+      draft.storeName,
+      draft.mapUrl,
+      draft.latitude,
+      draft.longitude,
+    ]
+
+    if (requiredSignupFields.some((field) => field === undefined || field === null || field === '')) {
+      setSignupError('*회원가입 정보가 부족해요. 처음부터 다시 진행해주세요.')
+      return
+    }
+
     const signupForm = {
       email: draft.email,
       storeName: draft.storeName,
@@ -55,8 +68,13 @@ const OwnerPassword = () => {
       await signupOwner(signupForm)
       clearOwnerSignupDraft()
       navigate('/success-page')
-    } catch {
-      setSignupError('*회원가입에 실패했어요. 입력 정보를 다시 확인해주세요.')
+    } catch (error) {
+      const serverMessage = error.response?.data?.message
+      setSignupError(
+        serverMessage
+          ? `*${serverMessage}`
+          : '*회원가입에 실패했어요. 입력 정보를 다시 확인해주세요.'
+      )
     } finally {
       setIsSigningUp(false)
     }

@@ -136,6 +136,7 @@ const OwnerLogin = () => {
                 id="owner-password"
                 type="text"
                 value={"*".repeat(password.length)}
+                onChange={() => {}}
                 onBeforeInput={(event) => {
                   event.preventDefault();
                   replaceSelectedPasswordText(event.data ?? "");
