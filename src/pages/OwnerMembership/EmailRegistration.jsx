@@ -5,21 +5,21 @@ import AuthButton from "../../components/auth/AuthButton";
 import imageemail from "../../assets/image-email.png";
 import imagewarning from "../../assets/image-warning.png";
 import { FaArrowRight } from "react-icons/fa6";
+import api from "../../apis/api";
 
 const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-const DUPLICATE_EMAIL = "ehowldpdy@naver.com";
 
 const EmailRegistration = () => {
   const navigate = useNavigate();
   const [email, setEmail] = useState("");
   const [focusedField, setFocusedField] = useState(false);
   const [emailError, setEmailError] = useState("");
+  const [isCheckingEmail, setIsCheckingEmail] = useState(false);
   const [isSent, setIsSent] = useState(false);
   const [isModalOpen, setIsModalOpen] = useState(false);
 
   const hasEmail = email.trim() !== "";
   const isEmailValid = EMAIL_REGEX.test(email.trim());
-  const isDuplicateEmail = email.trim().toLowerCase() === DUPLICATE_EMAIL;
 
   const getLineColor = () => {
     if (emailError || focusedField) {
@@ -41,18 +41,45 @@ const EmailRegistration = () => {
     setEmailError("");
   };
 
-  const handleNext = () => {
+  const handleNext = async () => {
+    if (isCheckingEmail) return;
+
     const trimmedEmail = email.trim();
     if (!trimmedEmail) return;
     if (!EMAIL_REGEX.test(trimmedEmail)) {
       setEmailError("* 이메일 형식을 맞추어 작성해주세요.");
       return;
     }
-    if (isDuplicateEmail) {
-      setEmailError("* 이미 등록된 이메일은 사용할 수 없어요.");
-      return;
+
+    try {
+      setIsCheckingEmail(true);
+      setEmailError("");
+
+      const response = await api.get("/api/v1/auth/email/check", {
+        params: { email: trimmedEmail },
+      });
+
+      if (!response.data?.available) {
+        setEmailError("* 이미 등록된 이메일은 사용할 수 없어요.");
+        return;
+      }
+
+      setIsSent(true);
+    } catch (error) {
+      if (error.response?.status === 400) {
+        setEmailError("* 이메일 형식을 맞추어 작성해주세요.");
+        return;
+      }
+
+      if (error.response?.status === 409 || error.response?.status === 422) {
+        setEmailError("* 이미 등록된 이메일은 사용할 수 없어요.");
+        return;
+      }
+
+      setEmailError("* 이메일 중복 확인에 실패했어요. 잠시 후 다시 시도해주세요.");
+    } finally {
+      setIsCheckingEmail(false);
     }
-    setIsSent(true);
   };
 
   const handleResend = () => {
@@ -208,8 +235,8 @@ const EmailRegistration = () => {
       </section>
 
       <div className="mt-auto px-[16px] pb-[calc(54px+env(safe-area-inset-bottom))]">
-        <AuthButton isActive={isEmailValid} onClick={handleNext}>
-          다음
+        <AuthButton isActive={isEmailValid && !isCheckingEmail} onClick={handleNext}>
+          {isCheckingEmail ? "확인 중" : "다음"}
         </AuthButton>
       </div>
     </div>
