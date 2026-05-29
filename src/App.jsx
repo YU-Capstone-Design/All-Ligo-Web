@@ -40,6 +40,7 @@ const App = () => {
           <Route path="/success-page" element={<SuccessPage />} />
 
           <Route path="/makepage" element={<MakePage />} />
+          <Route path="/home" element={<MakePage />} />
           <Route path="/makecomplete" element={<MakeComplete />} />
 
           <Route path="/mypage" element={<MyPage />} />
