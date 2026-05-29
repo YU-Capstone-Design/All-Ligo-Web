@@ -10,6 +10,7 @@ import {
   checkEmailVerificationStatus,
   sendVerificationEmail,
 } from "../../apis/EmailCheckApi";
+import { updateOwnerSignupDraft } from "../../utils/ownerSignupDraft";
 
 const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
@@ -112,6 +113,7 @@ const EmailRegistration = () => {
         return;
       }
 
+      updateOwnerSignupDraft({ email: email.trim() });
       navigate("/owner-store-name");
     } catch (error) {
       if (error.response?.status === 400) {

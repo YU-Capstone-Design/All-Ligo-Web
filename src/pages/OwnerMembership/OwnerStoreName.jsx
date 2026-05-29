@@ -2,6 +2,7 @@ import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import OwnerSignupHeader from "../../components/auth/OwnerSignupHeader";
 import AuthButton from "../../components/auth/AuthButton";
+import { updateOwnerSignupDraft } from "../../utils/ownerSignupDraft";
 
 const OwnerStoreName = () => {
   const navigate = useNavigate();
@@ -27,6 +28,7 @@ const OwnerStoreName = () => {
       return;
     }
 
+    updateOwnerSignupDraft({ storeName: storeName.trim() });
     navigate("/owner-store-link");
   };
 

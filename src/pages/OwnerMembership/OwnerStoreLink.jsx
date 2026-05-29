@@ -2,6 +2,7 @@ import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import OwnerSignupHeader from "../../components/auth/OwnerSignupHeader";
 import AuthButton from "../../components/auth/AuthButton";
+import { updateOwnerSignupDraft } from "../../utils/ownerSignupDraft";
 
 const URL_REGEX = /^(https?:\/\/)([\w-]+\.)+[\w-]+(\/.*)?$/i;
 
@@ -50,6 +51,7 @@ const OwnerStoreLink = () => {
       return;
     }
 
+    updateOwnerSignupDraft({ mapUrl: trimmedLink });
     navigate("/owner-store-location");
   };
 
