@@ -6,6 +6,7 @@ import alarm from "../assets/alarm.svg";
 import erroroutline from "../assets/make/erroroutline.svg";
 import plusicon from "../assets/make/plusicon.svg";
 import noicon from "../assets/auth/noicon.svg";
+import warningImage from "../assets/image-warning.png";
 import MakeHeader from "../components/make/MakeHeader";
 import HashTagModal from "../components/make/HashTagModal";
 import WeekdaySelector from "../components/make/WeekdaySelector";
@@ -34,6 +35,7 @@ const ProductEdit = () => {
   const [isTimeModalOpen, setIsTimeModalOpen] = useState(false);
   const [uploadTime, setUploadTime] = useState({ hour: 16, minute: 43 });
   const [selectedEndDate, setSelectedEndDate] = useState(new Date(2026, 4, 18));
+  const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
 
   const handleAddHashTag = (newHashTag) => {
     setHashTags((prev) => [...prev, newHashTag]);
@@ -195,6 +197,7 @@ const ProductEdit = () => {
 
         <button
           type="button"
+          onClick={() => setIsDeleteModalOpen(true)}
           className="mt-[16px] h-[62px] w-full rounded-[10px] bg-white px-[22px] text-left text-[16px] font-normal leading-[34px] text-[#DC3436]"
         >
           스케줄링 삭제하기
@@ -220,6 +223,39 @@ const ProductEdit = () => {
           onClose={() => setIsHashTagModalOpen(false)}
           onAdd={handleAddHashTag}
         />
+      )}
+
+      {isDeleteModalOpen && (
+        <div
+          className="absolute inset-0 z-50 flex items-end bg-black/56"
+          onClick={() => setIsDeleteModalOpen(false)}
+        >
+          <div
+            className="h-[275px] w-full rounded-t-[15px] bg-white px-[16px] py-[24px]"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="flex h-full flex-col items-center">
+              <img
+                className="h-[50px] w-[50px]"
+                src={warningImage}
+                alt="경고"
+              />
+              <span className="mt-[24px] text-center text-[24px] font-bold leading-[34px] text-black">
+                삭제하면 되돌릴 수 없어요!
+              </span>
+              <span className="mt-[4px] text-center text-[14px] font-normal leading-[21px] text-[#7E858C]">
+                정말 삭제 하시겠어요?
+              </span>
+              <button
+                type="button"
+                onClick={() => navigate("/product")}
+                className="mt-[24px] flex h-[67px] w-full items-center justify-center rounded-[15px] bg-[#FFE8ED] px-[55px] py-[8px] text-[18px] font-normal leading-[32px] text-[#DF0024]"
+              >
+                삭제하기
+              </button>
+            </div>
+          </div>
+        </div>
       )}
     </div>
   );
