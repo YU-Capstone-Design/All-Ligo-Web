@@ -1,10 +1,11 @@
-import React, { useState } from 'react'
+import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import erroroutline from '../../assets/make/erroroutline.svg'
 import arrowup from '../../assets/arrow-up.svg'
 import TimeModal from './TimeModal'
 import Calendar from './Calendar'
 import AuthButton from '../auth/AuthButton'
+import WeekdaySelector from './WeekdaySelector'
 
 const Upload = () => {
   const navigate = useNavigate()
@@ -19,23 +20,6 @@ const Upload = () => {
   const [selectedEndDate, setSelectedEndDate] = useState(null)
 
   const isCreateActive = selectedDay && selectedEndDate
-
-  const BaseDateStyle =
-    'h-[63px] px-[12px] py-[8px] border rounded-[10px] text-center justify-center items-center flex text-[16px] leading-[33px] outline-none w-full cursor-pointer'
-
-  const getDateStyle = (day, colorClass = 'text-[#000000]') => {
-    const isSelected = selectedDay === day
-
-    return `
-      ${BaseDateStyle}
-      ${colorClass}
-      ${
-        isSelected
-          ? 'border-[#3182F6] bg-[#C9E2FF]'
-          : 'border-[#f6f6f8] bg-[#f6f6f8]'
-      }
-    `
-  }
 
   return (
     <div className="relative h-full flex flex-col">
@@ -58,63 +42,10 @@ const Upload = () => {
             업로드 요일 선택
           </span>
 
-          <div className="flex gap-[8px]">
-            <button
-              type="button"
-              onClick={() => setSelectedDay('월')}
-              className={getDateStyle('월')}
-            >
-              월
-            </button>
-
-            <button
-              type="button"
-              onClick={() => setSelectedDay('화')}
-              className={getDateStyle('화')}
-            >
-              화
-            </button>
-
-            <button
-              type="button"
-              onClick={() => setSelectedDay('수')}
-              className={getDateStyle('수')}
-            >
-              수
-            </button>
-
-            <button
-              type="button"
-              onClick={() => setSelectedDay('목')}
-              className={getDateStyle('목')}
-            >
-              목
-            </button>
-
-            <button
-              type="button"
-              onClick={() => setSelectedDay('금')}
-              className={getDateStyle('금')}
-            >
-              금
-            </button>
-
-            <button
-              type="button"
-              onClick={() => setSelectedDay('토')}
-              className={getDateStyle('토', 'text-[#3182f6]')}
-            >
-              토
-            </button>
-
-            <button
-              type="button"
-              onClick={() => setSelectedDay('일')}
-              className={getDateStyle('일', 'text-[#ed0404]')}
-            >
-              일
-            </button>
-          </div>
+          <WeekdaySelector
+            selectedDay={selectedDay}
+            onSelectDay={setSelectedDay}
+          />
 
           <button
             type="button"

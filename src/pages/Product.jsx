@@ -71,6 +71,7 @@ const Product = () => {
               weekday={item.weekday}
               title={item.title}
               date={item.date}
+              onClick={() => navigate(`/product/${item.id}/edit`)}
             />
           ))}
         </section>

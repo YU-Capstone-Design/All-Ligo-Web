@@ -1,9 +1,10 @@
 import arrowup from "../../assets/arrow-up.svg";
 
-const ProductCard = ({ weekday, title, date }) => {
+const ProductCard = ({ weekday, title, date, onClick }) => {
   return (
     <button
       type="button"
+      onClick={onClick}
       className="flex p-[12px] w-full items-center rounded-[22px] bg-white px-[14px] text-left"
     >
       <div className="h-[76px] w-[76px] shrink-0 rounded-[5px] bg-[#E7F3FF]" />
