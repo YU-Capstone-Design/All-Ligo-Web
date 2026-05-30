@@ -13,6 +13,8 @@ import SuccessPage from "./pages/OwnerMembership/SuccessPage";
 import MakePage from "./pages/MakePage";
 import MakeComplete from "./pages/MakeComplete";
 import Home from "./pages/Home";
+import Product from "./pages/Product";
+import ProductEdit from "./pages/ProductEdit";
 
 import MyPage from "./pages/mypage/Mypage";
 import CouponRegistration from "./pages/mypage/CouponRegistration";
@@ -42,6 +44,8 @@ const App = () => {
 
           <Route path="/makepage" element={<MakePage />} />
           <Route path="/home" element={<Home />} />
+          <Route path="/product" element={<Product />} />
+          <Route path="/product/:productId/edit" element={<ProductEdit />} />
           <Route path="/makecomplete" element={<MakeComplete />} />
 
           <Route path="/mypage" element={<MyPage />} />

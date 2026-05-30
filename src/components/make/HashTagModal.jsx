@@ -1,6 +1,7 @@
-import React, { useState } from 'react'
+import { useState } from 'react'
+import noicon from '../../assets/auth/noicon.svg'
 
-const HashTagModal = ({ onClose, onAdd }) => {
+const HashTagModal = ({ onClose, onAdd, tags = [], onRemove }) => {
   const [hashTagInput, setHashTagInput] = useState('')
 
   const handleAddHashTag = () => {
@@ -21,9 +22,25 @@ const HashTagModal = ({ onClose, onAdd }) => {
           className="w-full border-b border-[#b4bac0] pb-[12px] text-[24px] leading-[28px] outline-none placeholder:text-[#cad0d6]"
         />
 
+        {tags.length > 0 && (
+          <div className="mt-[22px] flex flex-wrap gap-[10px]">
+            {tags.map((tag, index) => (
+              <button
+                key={`${tag}-${index}`}
+                type="button"
+                onClick={() => onRemove?.(index)}
+                className="flex h-[42px] items-center gap-[8px] rounded-[8px] bg-[#F6F6F8] px-[13px] text-[18px] font-normal leading-[24px] text-black"
+              >
+                {tag}
+                <img className="h-[20px] w-[20px]" src={noicon} alt="" />
+              </button>
+            ))}
+          </div>
+        )}
+
         <button
           onClick={handleAddHashTag}
-          className="mt-[100px] w-full h-[67px] rounded-[15px] bg-[#3182f6] text-white text-[18px] font-semibold"
+          className={`${tags.length > 0 ? 'mt-[54px]' : 'mt-[100px]'} w-full h-[67px] rounded-[15px] bg-[#3182f6] text-white text-[18px] font-semibold`}
         >
           완료
         </button>

@@ -1,7 +1,6 @@
-import React from 'react'
 import arrowup from '../../assets/arrow-up.svg'
 
-const MakeHeader = ({ onBack }) => {
+const MakeHeader = ({ onBack, title = '홍보물 생성' }) => {
   return (
     <div className="flex flex-row items-center py-[11px]">
       <button
@@ -13,7 +12,7 @@ const MakeHeader = ({ onBack }) => {
       </button>
 
       <div className="text-[14px] w-[314px] leading-[20px] text-center flex justify-center">
-        홍보물 생성
+        {title}
       </div>
     </div>
   )
