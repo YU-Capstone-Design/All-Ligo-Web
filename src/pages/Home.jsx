@@ -14,7 +14,7 @@ const Home = () => {
   const navigate = useNavigate();
 
   return (
-    <div className="no-scrollbar h-[100dvh] overflow-y-auto bg-[#F3F4F6] px-[17px] pb-[20px]">
+    <div className="no-scrollbar h-[100dvh] overflow-y-auto bg-[#F3F4F6] px-[17px] pb-[130px]">
       <header className="flex py-[7px] items-center justify-between">
        <img className="w-[88.685px] h-[24.383px]" src={appname} alt="All-Ligo" />
         <img  className="w-[28px] h-[28px] " src={bell} alt="알림" />
