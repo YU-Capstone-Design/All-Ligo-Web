@@ -1,15 +1,20 @@
-import { useRef, useState } from "react";
+import { useContext, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import OwnerLoginHeader from "../components/auth/OwnerLoginHeader";
 import AuthButton from "../components/auth/AuthButton";
+import { loginOwner } from "../apis/OwnerLoginApi";
+import AuthContext from "../contexts/AuthContext";
 
 const OwnerLogin = () => {
   const navigate = useNavigate();
+  const { login } = useContext(AuthContext);
   const passwordInputRef = useRef(null);
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [focusedField, setFocusedField] = useState(null);
   const [hasError, setHasError] = useState(false);
+  const [loginError, setLoginError] = useState("");
+  const [isLoggingIn, setIsLoggingIn] = useState(false);
 
   const getLineColor = (field) => {
     const fieldValue = field === "email" ? email : password;
@@ -25,11 +30,40 @@ const OwnerLogin = () => {
     return fieldValue ? "border-black" : "border-[#B4BAC0]";
   };
 
-  const handleSubmit = () => {
-    if (email.trim() === "" || password.trim() === "") {
+  const handleSubmit = async () => {
+    const trimmedEmail = email.trim();
+
+    if (trimmedEmail === "" || password.trim() === "" || isLoggingIn) {
       return;
     }
-    setHasError(true);
+
+    try {
+      setIsLoggingIn(true);
+      setHasError(false);
+      setLoginError("");
+
+      const loginResult = await loginOwner({
+        email: trimmedEmail,
+        password,
+      });
+      const username =
+        loginResult?.username ||
+        loginResult?.name ||
+        loginResult?.storeName ||
+        trimmedEmail;
+      const role = loginResult?.role || "OWNER";
+
+      login(username, role);
+      navigate("/home");
+    } catch (error) {
+      setHasError(true);
+      setLoginError(
+        error.response?.data?.message ||
+          "* 아이디 또는 비밀번호가 일치하지 않습니다."
+      );
+    } finally {
+      setIsLoggingIn(false);
+    }
   };
 
   const updatePassword = (
@@ -38,6 +72,7 @@ const OwnerLogin = () => {
   ) => {
     setPassword(nextPassword);
     setHasError(false);
+    setLoginError("");
 
     requestAnimationFrame(() => {
       passwordInputRef.current?.setSelectionRange(
@@ -93,6 +128,7 @@ const OwnerLogin = () => {
                 onChange={(event) => {
                   setEmail(event.target.value);
                   setHasError(false);
+                  setLoginError("");
                 }}
                 onFocus={() => setFocusedField("email")}
                 onBlur={() => setFocusedField(null)}
@@ -136,6 +172,7 @@ const OwnerLogin = () => {
                 id="owner-password"
                 type="text"
                 value={"*".repeat(password.length)}
+                onChange={() => {}}
                 onBeforeInput={(event) => {
                   event.preventDefault();
                   replaceSelectedPasswordText(event.data ?? "");
@@ -213,7 +250,7 @@ const OwnerLogin = () => {
 
           {hasError && (
             <p className="mt-[10px] text-[14px] leading-[20px] font-normal text-[#C74F44]">
-              * 아이디 또는 비밀번호가 일치하지 않습니다.
+              {loginError}
             </p>
           )}
 
@@ -231,7 +268,12 @@ const OwnerLogin = () => {
       </section>
 
       <div className="mt-auto px-[16px] pb-[calc(54px+env(safe-area-inset-bottom))]">
-        <AuthButton isActive onClick={handleSubmit} />
+        <AuthButton
+          isActive={email.trim() !== "" && password.trim() !== "" && !isLoggingIn}
+          onClick={handleSubmit}
+        >
+          {isLoggingIn ? "로그인 중" : "시작하기"}
+        </AuthButton>
       </div>
     </div>
   );

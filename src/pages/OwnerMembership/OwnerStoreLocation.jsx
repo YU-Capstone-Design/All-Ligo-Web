@@ -1,7 +1,9 @@
 import { useCallback, useEffect, useRef, useState } from "react";
+import { useNavigate } from "react-router-dom";
 import OwnerSignupHeader from "../../components/auth/OwnerSignupHeader";
 import AuthButton from "../../components/auth/AuthButton";
 import { CiSearch } from "react-icons/ci";
+import { updateOwnerSignupDraft } from "../../utils/ownerSignupDraft";
 
 const DEFAULT_CENTER = { lat: 35.8338, lng: 128.7597 };
 
@@ -38,6 +40,7 @@ const loadKakaoMap = () => {
 };
 
 const OwnerStoreLocation = () => {
+  const navigate = useNavigate();
   const mapNodeRef = useRef(null);
   const mapRef = useRef(null);
   const overlayRef = useRef(null);
@@ -48,6 +51,7 @@ const OwnerStoreLocation = () => {
   const [isFocused, setIsFocused] = useState(false);
   const [isMapOpen, setIsMapOpen] = useState(false);
   const [mapError, setMapError] = useState("");
+  const [selectedCoords, setSelectedCoords] = useState(null);
 
   const hasLocation = locationText.trim() !== "";
 
@@ -65,6 +69,7 @@ const OwnerStoreLocation = () => {
     const nextLabel = label || `${lat.toFixed(6)}, ${lng.toFixed(6)}`;
     setLocationText(nextLabel);
     setSearchText(nextLabel);
+    setSelectedCoords({ latitude: lat, longitude: lng });
 
     if (!window.kakao?.maps || !mapRef.current || !overlayRef.current) return;
 
@@ -114,7 +119,10 @@ const OwnerStoreLocation = () => {
   };
 
   const handleNext = () => {
-    if (!hasLocation) return;
+    if (!hasLocation || !selectedCoords) return;
+
+    updateOwnerSignupDraft(selectedCoords);
+    navigate("/owner-password");
   };
 
   useEffect(() => {

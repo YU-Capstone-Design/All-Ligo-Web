@@ -5,21 +5,27 @@ import AuthButton from "../../components/auth/AuthButton";
 import imageemail from "../../assets/image-email.png";
 import imagewarning from "../../assets/image-warning.png";
 import { FaArrowRight } from "react-icons/fa6";
+import {
+  checkEmailDuplicate,
+  checkEmailVerificationStatus,
+  sendVerificationEmail,
+} from "../../apis/EmailCheckApi";
+import { updateOwnerSignupDraft } from "../../utils/ownerSignupDraft";
 
 const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-const DUPLICATE_EMAIL = "ehowldpdy@naver.com";
 
 const EmailRegistration = () => {
   const navigate = useNavigate();
   const [email, setEmail] = useState("");
   const [focusedField, setFocusedField] = useState(false);
   const [emailError, setEmailError] = useState("");
+  const [sentEmailError, setSentEmailError] = useState("");
+  const [isProcessingEmail, setIsProcessingEmail] = useState(false);
   const [isSent, setIsSent] = useState(false);
   const [isModalOpen, setIsModalOpen] = useState(false);
 
   const hasEmail = email.trim() !== "";
   const isEmailValid = EMAIL_REGEX.test(email.trim());
-  const isDuplicateEmail = email.trim().toLowerCase() === DUPLICATE_EMAIL;
 
   const getLineColor = () => {
     if (emailError || focusedField) {
@@ -41,31 +47,84 @@ const EmailRegistration = () => {
     setEmailError("");
   };
 
-  const handleNext = () => {
+  const handleNext = async () => {
+    if (isProcessingEmail) return;
+
     const trimmedEmail = email.trim();
     if (!trimmedEmail) return;
     if (!EMAIL_REGEX.test(trimmedEmail)) {
       setEmailError("* 이메일 형식을 맞추어 작성해주세요.");
       return;
     }
-    if (isDuplicateEmail) {
-      setEmailError("* 이미 등록된 이메일은 사용할 수 없어요.");
-      return;
+
+    try {
+      setIsProcessingEmail(true);
+      setEmailError("");
+
+      const emailCheckResult = await checkEmailDuplicate(trimmedEmail);
+
+      if (!emailCheckResult?.available) {
+        setEmailError("* 이미 등록된 이메일은 사용할 수 없어요.");
+        return;
+      }
+
+      await sendVerificationEmail(trimmedEmail);
+      setIsSent(true);
+    } catch (error) {
+      if (error.response?.status === 400) {
+        setEmailError("* 이메일 형식을 맞추어 작성해주세요.");
+        return;
+      }
+
+      if (error.response?.status === 409 || error.response?.status === 422) {
+        setEmailError("* 이미 등록된 이메일은 사용할 수 없어요.");
+        return;
+      }
+
+      setEmailError("* 이메일 인증 메일 발송에 실패했어요. 잠시 후 다시 시도해주세요.");
+    } finally {
+      setIsProcessingEmail(false);
     }
-    setIsSent(true);
   };
 
-  const handleResend = () => {
-    setIsModalOpen(true);
+  const handleResend = async () => {
+    if (isProcessingEmail) return;
+
+    try {
+      setIsProcessingEmail(true);
+      setSentEmailError("");
+      await sendVerificationEmail(email.trim());
+    } catch {
+      setSentEmailError("* 인증 이메일 재발송에 실패했어요. 잠시 후 다시 시도해주세요.");
+    } finally {
+      setIsProcessingEmail(false);
+    }
   };
 
-  const handleComplete = () => {
-    const isEmailVerified = false;
-    if (!isEmailVerified) {
-      setIsModalOpen(true);
-      return;
+  const handleComplete = async () => {
+    if (isProcessingEmail) return;
+
+    try {
+      setIsProcessingEmail(true);
+      const statusResult = await checkEmailVerificationStatus(email.trim());
+
+      if (!statusResult?.verified) {
+        setIsModalOpen(true);
+        return;
+      }
+
+      updateOwnerSignupDraft({ email: email.trim() });
+      navigate("/owner-store-name");
+    } catch (error) {
+      if (error.response?.status === 400) {
+        alert("유효시간이 끝났어요.");
+        return;
+      }
+
+      alert("이메일 인증 상태를 확인하지 못했습니다. 잠시 후 다시 시도해주세요.");
+    } finally {
+      setIsProcessingEmail(false);
     }
-    navigate("/owner-store-name");
   };
 
   if (isSent) {
@@ -92,18 +151,24 @@ const EmailRegistration = () => {
           <button
             type="button"
             onClick={handleResend}
+            disabled={isProcessingEmail}
             className="mt-[23px] flex items-center justify-center gap-[6px] text-[18px] leading-none font-semibold text-[#3182F6]"
           >
-            <span>다시보내기</span>
+            <span>{isProcessingEmail ? "발송 중" : "다시보내기"}</span>
             <span className="flex items-center -translate-y-[2px]">
               <FaArrowRight size={15} />
             </span>
           </button>
+          {sentEmailError && (
+            <p className="mt-[10px] text-[14px] leading-[20px] font-normal text-[#C74F44]">
+              {sentEmailError}
+            </p>
+          )}
         </section>
 
         <div className="px-[16px] pb-[calc(54px+env(safe-area-inset-bottom))]">
-          <AuthButton isActive onClick={handleComplete}>
-            완료
+          <AuthButton isActive={!isProcessingEmail} onClick={handleComplete}>
+            {isProcessingEmail ? "확인 중" : "완료"}
           </AuthButton>
         </div>
 
@@ -133,14 +198,22 @@ const EmailRegistration = () => {
 
               <button
                 type="button"
-                onClick={() => setIsModalOpen(false)}
+                onClick={handleResend}
+                disabled={isProcessingEmail}
                 className="mt-[22px] flex h-[60px] w-full items-center justify-center gap-[8px] rounded-[15px] bg-[#E8F3FF] text-[16px] leading-[24px] font-medium text-[#3182F6]"
               >
-                <span>인증 이메일 다시보내기</span>
+                <span>
+                  {isProcessingEmail ? "인증 이메일 발송 중" : "인증 이메일 다시보내기"}
+                </span>
                 <span className="flex items-center -translate-y-[2px]">
                   <FaArrowRight size={15} />
                 </span>
               </button>
+              {sentEmailError && (
+                <p className="mt-[10px] text-[14px] leading-[20px] font-normal text-[#C74F44]">
+                  {sentEmailError}
+                </p>
+              )}
             </div>
           </div>
         )}
@@ -208,8 +281,8 @@ const EmailRegistration = () => {
       </section>
 
       <div className="mt-auto px-[16px] pb-[calc(54px+env(safe-area-inset-bottom))]">
-        <AuthButton isActive={isEmailValid} onClick={handleNext}>
-          다음
+        <AuthButton isActive={isEmailValid && !isProcessingEmail} onClick={handleNext}>
+          {isProcessingEmail ? "발송 중" : "다음"}
         </AuthButton>
       </div>
     </div>
