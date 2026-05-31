@@ -4,40 +4,9 @@ import OwnerSignupHeader from "../../components/auth/OwnerSignupHeader";
 import AuthButton from "../../components/auth/AuthButton";
 import { CiSearch } from "react-icons/ci";
 import { updateOwnerSignupDraft } from "../../utils/ownerSignupDraft";
+import loadKakaoMap from "../../utils/loadKakaoMap";
 
 const DEFAULT_CENTER = { lat: 35.8338, lng: 128.7597 };
-
-const loadKakaoMap = () => {
-  const KAKAO_MAP_KEY = import.meta.env.VITE_KAKAO_MAP_KEY;
-  const KAKAO_MAP_SDK_URL = `https://dapi.kakao.com/v2/maps/sdk.js?appkey=${KAKAO_MAP_KEY}&libraries=services&autoload=false`;
-
-  if (!KAKAO_MAP_KEY) {
-    return Promise.reject(new Error("Kakao map key is missing"));
-  }
-
-  return new Promise((resolve, reject) => {
-    if (window.kakao && window.kakao.maps && window.kakao.maps.Map) {
-      window.kakao.maps.load(() => resolve(window.kakao));
-      return;
-    }
-
-    const existingScript = document.getElementById("kakao-map-script");
-    if (existingScript) {
-      window.kakao.maps.load(() => resolve(window.kakao));
-      return;
-    }
-
-    const script = document.createElement("script");
-    script.id = "kakao-map-script";
-    script.src = KAKAO_MAP_SDK_URL;
-    script.async = true;
-    script.onload = () => {
-      window.kakao.maps.load(() => resolve(window.kakao));
-    };
-    script.onerror = () => reject(new Error("Kakao Map SDK load failed"));
-    document.head.appendChild(script);
-  });
-};
 
 const OwnerStoreLocation = () => {
   const navigate = useNavigate();
@@ -177,7 +146,8 @@ const OwnerStoreLocation = () => {
           initMap(DEFAULT_CENTER.lat, DEFAULT_CENTER.lng);
         }
       })
-      .catch(() => {
+      .catch((error) => {
+        console.error(error);
         setMapError("카카오맵 로드 실패");
       });
 
