@@ -34,7 +34,14 @@ const Product = () => {
     <div className="no-scrollbar h-[100dvh] overflow-y-auto bg-[#F3F4F6] px-[22px] pb-[130px]">
       <header className="flex items-center justify-between py-[7px]">
         <img className="h-[24.383px] w-[88.685px]" src={appname} alt="All-Ligo" />
-        <img className="h-[28px] w-[28px]" src={bell} alt="알림" />
+        <button
+          type="button"
+          onClick={() => navigate("/notifications")}
+          className="flex h-[40px] w-[40px] items-center justify-center"
+          aria-label="알림"
+        >
+          <img className="h-[28px] w-[28px]" src={bell} alt="" />
+        </button>
       </header>
 
       <main className="mt-[46px]">
