@@ -2,55 +2,11 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import arrowup from "../../assets/arrow-up.svg";
 import AuthButton from "../../components/auth/AuthButton";
+import loadKakaoMap from "../../utils/loadKakaoMap";
 
 import { FiSearch } from "react-icons/fi";
 
 const DEFAULT_CENTER = { lat: 35.8338, lng: 128.7597 };
-
-const loadKakaoMap = () => {
-  const kakaoMapKey = import.meta.env.VITE_KAKAO_MAP_KEY;
-  const kakaoMapSdkUrl = `https://dapi.kakao.com/v2/maps/sdk.js?appkey=${kakaoMapKey}&libraries=services&autoload=false`;
-
-  if (!kakaoMapKey) {
-    return Promise.reject(new Error("Kakao map key is missing"));
-  }
-
-  return new Promise((resolve, reject) => {
-    if (window.kakao?.maps?.Map) {
-      window.kakao.maps.load(() => resolve(window.kakao));
-      return;
-    }
-
-    const existingScript = document.getElementById("kakao-map-script");
-
-    if (existingScript) {
-      if (window.kakao?.maps) {
-        window.kakao.maps.load(() => resolve(window.kakao));
-        return;
-      }
-
-      existingScript.addEventListener(
-        "load",
-        () => {
-          window.kakao.maps.load(() => resolve(window.kakao));
-        },
-        { once: true }
-      );
-      existingScript.addEventListener("error", reject, { once: true });
-      return;
-    }
-
-    const script = document.createElement("script");
-    script.id = "kakao-map-script";
-    script.src = kakaoMapSdkUrl;
-    script.async = true;
-    script.onload = () => {
-      window.kakao.maps.load(() => resolve(window.kakao));
-    };
-    script.onerror = () => reject(new Error("Kakao Map SDK load failed"));
-    document.head.appendChild(script);
-  });
-};
 
 const MyLocationSetting = () => {
   const navigate = useNavigate();
@@ -273,7 +229,8 @@ const MyLocationSetting = () => {
           );
         }
       })
-      .catch(() => {
+      .catch((error) => {
+        console.error(error);
         setMapError(
           "카카오맵을 불러오지 못했어요. API 키와 Web 플랫폼 도메인을 확인해주세요."
         );
