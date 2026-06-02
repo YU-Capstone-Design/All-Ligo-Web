@@ -1,9 +1,9 @@
-import React, { useState } from 'react'
+import { useState } from 'react'
 import plusicon from '../../assets/make/plusicon.svg'
 import HashTagModal from './HashTagModal'
 import AuthButton from '../auth/AuthButton'
 
-const Keyword = ({ onNext }) => {
+const Keyword = ({ title, onTitleChange, onNext }) => {
   const [selectedMood, setSelectedMood] = useState('')
   const [selectedHashTagIndex, setSelectedHashTagIndex] = useState(null)
   const [hashTags, setHashTags] = useState([])
@@ -12,7 +12,7 @@ const Keyword = ({ onNext }) => {
 
   const moodTags = ['따뜻함', '차분함', '밝음']
 
-  const isNextActive = selectedMood && hashTags.length > 0
+  const isNextActive = title?.trim().length > 0 && selectedMood && hashTags.length > 0
 
   const moodCommonBtnStyle =
     'text-[20px] leading-[33px] border rounded-[10px] py-[8px] px-[12px] w-[118.04px] h-[49px]'
@@ -53,8 +53,21 @@ const Keyword = ({ onNext }) => {
           </span>
         </div>
 
+        <div className="flex flex-col gap-[8px] mt-[30px]">
+          <label className="font-pretendard font-medium leading-[21px] text-[#7e858c]">
+            제목
+          </label>
+
+          <input
+            value={title}
+            onChange={onTitleChange}
+            placeholder="ex) 우리가게 레모네이드 광고"
+            className="w-full h-[69px] rounded-[10px] bg-[#f6f6f8] px-[12px] text-[16px] leading-[24px] text-black placeholder:text-[#b0b8c1] outline-none"
+          />
+        </div>
+
         {/* 분위기 태그 */}
-        <div className="flex flex-col gap-[8px] mt-[43.11px]">
+        <div className="flex flex-col gap-[8px] mt-[38px]">
           <span className="font-pretendard font-medium leading-[21px] text-[#7e858c]">
             분위기 태그
           </span>

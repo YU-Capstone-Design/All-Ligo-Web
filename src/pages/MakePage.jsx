@@ -1,10 +1,9 @@
-import React, { useState } from 'react'
+import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import MakeHeader from '../components/make/MakeHeader'
 import FileUpload from '../components/make/FileUpload'
 import Keyword from '../components/make/Keyword'
 import TypeSelect from '../components/make/TypeSelect'
-import Title from '../components/make/Title'
 import Upload from '../components/make/Upload'
 
 const MakePage = () => {
@@ -15,11 +14,6 @@ const MakePage = () => {
 
   const handleBack = () => {
     if (step === 'upload') {
-      setStep('title')
-      return
-    }
-
-    if (step === 'title') {
       setStep('typeSelect')
       return
     }
@@ -47,19 +41,15 @@ const MakePage = () => {
         )}
 
         {step === 'keyword' && (
-          <Keyword onNext={() => setStep('typeSelect')} />
+          <Keyword
+            title={title}
+            onTitleChange={(e) => setTitle(e.target.value)}
+            onNext={() => setStep('typeSelect')}
+          />
         )}
 
         {step === 'typeSelect' && (
-          <TypeSelect onNext={() => setStep('title')} />
-        )}
-
-        {step === 'title' && (
-          <Title
-            value={title}
-            onChange={(e) => setTitle(e.target.value)}
-            onCreate={() => setStep('upload')}
-          />
+          <TypeSelect onNext={() => setStep('upload')} />
         )}
 
         {step === 'upload' && (
