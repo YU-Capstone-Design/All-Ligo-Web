@@ -27,7 +27,6 @@ const MakePage = () => {
       setStep('fileUpload')
       return
     }
-
     navigate(-1)
   }
 

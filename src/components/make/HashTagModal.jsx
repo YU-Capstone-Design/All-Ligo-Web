@@ -9,12 +9,11 @@ const HashTagModal = ({ onClose, onAdd, tags = [], onRemove }) => {
 
     onAdd(hashTagInput.trim())
     setHashTagInput('')
-    onClose()
   }
 
   return (
     <div className="absolute inset-0 z-50 flex items-end bg-black/60">
-      <div className="w-full bg-white rounded-t-[20px] px-[26px] pt-[32px] pb-[56px]">
+      <div className="w-full bg-[#f6f6f8] rounded-t-[20px] px-[26px] pt-[32px] pb-[56px]">
         <input
           value={hashTagInput}
           onChange={(e) => setHashTagInput(e.target.value)}
@@ -23,23 +22,23 @@ const HashTagModal = ({ onClose, onAdd, tags = [], onRemove }) => {
         />
 
         {tags.length > 0 && (
-          <div className="mt-[22px] flex flex-wrap gap-[10px]">
+          <div className="mt-[22px] flex flex-wrap  gap-[8px]">
             {tags.map((tag, index) => (
               <button
                 key={`${tag}-${index}`}
                 type="button"
                 onClick={() => onRemove?.(index)}
-                className="flex h-[42px] items-center gap-[8px] rounded-[8px] bg-[#F6F6F8] px-[13px] text-[18px] font-normal leading-[24px] text-black"
+                className="flex h-[49px] bg-[#ffffff] items-center justify-center gap-[8px] rounded-[10px] bg-[#fffff] py-[8px] pl-[16px] pr-[10px] font-['Apple_SD_Gothic_Neo'] text-[20px] font-medium leading-[33px] tracking-[-0.5px] text-black"
               >
                 {tag}
-                <img className="h-[20px] w-[20px]" src={noicon} alt="" />
+                <img className="h-[25px] w-[25px]" src={noicon} alt="" />
               </button>
             ))}
           </div>
         )}
 
         <button
-          onClick={handleAddHashTag}
+          onClick={hashTagInput.trim() ? handleAddHashTag : onClose}
           className={`${tags.length > 0 ? 'mt-[54px]' : 'mt-[100px]'} w-full h-[67px] rounded-[15px] bg-[#3182f6] text-white text-[18px] font-semibold`}
         >
           완료
