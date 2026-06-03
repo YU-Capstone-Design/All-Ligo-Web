@@ -1,15 +1,24 @@
 import { useState } from 'react'
 import plusicon from '../../assets/make/plusicon.svg'
+import noicon from '../../assets/auth/noicon.svg'
 import HashTagModal from './HashTagModal'
 import AuthButton from '../auth/AuthButton'
 
-const Keyword = ({ title, onTitleChange, onNext }) => {
-  const [selectedMood, setSelectedMood] = useState('')
+const Keyword = ({
+  title,
+  onTitleChange,
+  selectedMood,
+  setSelectedMood,
+  includeWeather,
+  setIncludeWeather,
+  hashTags,
+  setHashTags,
+  prompt,
+  setPrompt,
+  onNext,
+}) => {
   const [selectedHashTagIndex, setSelectedHashTagIndex] = useState(null)
-  const [hashTags, setHashTags] = useState([])
   const [isHashTagModalOpen, setIsHashTagModalOpen] = useState(false)
-  const [includeWeather, setIncludeWeather] = useState(false)
-  const [prompt, setPrompt] = useState('')
 
   const moodTags = ['따뜻함', '차분함', '밝음']
 
@@ -19,7 +28,7 @@ const Keyword = ({ title, onTitleChange, onNext }) => {
     'text-[20px] leading-[33px] border rounded-[10px] py-[8px] px-[12px] w-[118.04px] h-[49px]'
 
   const hashCommonBtnStyle =
-    'text-[20px] leading-[33px] border rounded-[10px] py-[8px] px-[16px] h-[49px] shrink-0 whitespace-nowrap'
+    'inline-flex items-center justify-center gap-[8px] text-[20px] leading-[33px] border rounded-[10px] py-[8px] pl-[16px] pr-[10px] h-[49px] shrink-0 whitespace-nowrap'
 
   const baseBtnStyle =
     'border-[#f6f6f8] bg-[#f6f6f8] text-black'
@@ -37,13 +46,24 @@ const Keyword = ({ title, onTitleChange, onNext }) => {
   }
 
   const handleAddHashTag = (newHashTag) => {
-    setHashTags((prev) => [...prev, newHashTag])
-    setSelectedHashTagIndex(null)
+    setHashTags((prev) => {
+      const nextHashTags = [...prev, newHashTag]
+
+      setSelectedHashTagIndex(nextHashTags.length - 1)
+
+      return nextHashTags
+    })
   }
 
   const handleRemoveHashTag = (removeIndex) => {
     setHashTags((prev) => prev.filter((_, index) => index !== removeIndex))
-    setSelectedHashTagIndex(null)
+    setSelectedHashTagIndex((prev) => {
+      if (prev === null) return null
+      if (prev === removeIndex) return null
+      if (prev > removeIndex) return prev - 1
+
+      return prev
+    })
   }
 
   return (
@@ -141,6 +161,15 @@ const Keyword = ({ title, onTitleChange, onNext }) => {
                   }`}
                 >
                   {tag}
+                  <img
+                    className="h-[25px] w-[25px] shrink-0"
+                    src={noicon}
+                    alt=""
+                    onClick={(event) => {
+                      event.stopPropagation()
+                      handleRemoveHashTag(index)
+                    }}
+                  />
                 </button>
               ))}
 
@@ -183,8 +212,6 @@ const Keyword = ({ title, onTitleChange, onNext }) => {
         <HashTagModal
           onClose={() => setIsHashTagModalOpen(false)}
           onAdd={handleAddHashTag}
-          tags={hashTags}
-          onRemove={handleRemoveHashTag}
         />
       )}
     </div>

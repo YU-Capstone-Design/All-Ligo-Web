@@ -1,10 +1,7 @@
-import React, { useState } from 'react'
 import ImgAdd from './ImgAdd'
 import AuthButton from '../auth/AuthButton'
 
-const FileUpload = ({ onNext }) => {
-  const [images, setImages] = useState([])
-
+const FileUpload = ({ images, setImages, onNext }) => {
   const isNextActive = images.length > 0
 
   return (
