@@ -1,14 +1,13 @@
-import api from "./api";
+import api, { setAuthToken } from "./api";
 
 const saveAuthToken = (response) => {
   const authorization = response.headers?.authorization;
   const accessToken = response.data?.accessToken || response.data?.token;
-  const token = authorization || (accessToken ? `Bearer ${accessToken}` : "");
+  const token = authorization || accessToken;
 
   if (!token) return;
 
-  localStorage.setItem("ownerAccessToken", token);
-  api.defaults.headers.common.Authorization = token;
+  setAuthToken(token);
 };
 
 export const loginOwner = async ({ email, password }) => {
