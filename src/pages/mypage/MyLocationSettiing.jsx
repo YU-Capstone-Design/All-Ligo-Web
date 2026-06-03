@@ -22,6 +22,8 @@ const MyLocationSetting = () => {
   const [selected, setSelected] = useState({
     title: "경북 경산시 현재 내 위치",
     subtitle: "경북 경산시 조영동1234-123",
+    lat: DEFAULT_CENTER.lat,
+    lng: DEFAULT_CENTER.lng,
   });
 
   const setSelectedLocation = useCallback((lat, lng, title, subtitle = "") => {
@@ -30,6 +32,8 @@ const MyLocationSetting = () => {
     setSelected({
       title: nextTitle,
       subtitle,
+      lat,
+      lng,
     });
 
     if (!window.kakao?.maps || !mapRef.current || !markerRef.current) {
@@ -163,6 +167,8 @@ const MyLocationSetting = () => {
   const handleSelect = () => {
     localStorage.setItem("mypageStoreLocation", selected.title);
     localStorage.setItem("mypageStoreLocationDetail", selected.subtitle);
+    localStorage.setItem("mypageStoreLatitude", String(selected.lat));
+    localStorage.setItem("mypageStoreLongitude", String(selected.lng));
     navigate("/mypage/profile");
   };
 

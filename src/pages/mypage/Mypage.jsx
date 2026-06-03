@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom";
 import BottomNavigation from "../../components/BottomNavigation";
 import AuthContext from "../../contexts/AuthContext";
 import { deleteCoupon, getMyCoupons } from "../../apis/CouponApi";
+import { getMyPageInfo } from "../../apis/UserApi";
 
 import { CiCirclePlus } from "react-icons/ci";
 import { MdOutlineLogout } from "react-icons/md";
@@ -38,8 +39,14 @@ const MyPage = () => {
   const [couponList, setCouponList] = useState([]);
   const [isCouponLoading, setIsCouponLoading] = useState(true);
   const [couponError, setCouponError] = useState("");
+  const [myPageInfo, setMyPageInfo] = useState(null);
+  const [myPageError, setMyPageError] = useState("");
 
   const storeAddress = useMemo(() => {
+    if (myPageInfo?.mapUrl) {
+      return myPageInfo.mapUrl;
+    }
+
     const savedLocation = localStorage.getItem("mypageStoreLocation");
     const savedDetail = localStorage.getItem("mypageStoreLocationDetail");
 
@@ -58,7 +65,7 @@ const MyPage = () => {
     } catch {
       return "경북 경산시 대학로 280";
     }
-  }, []);
+  }, [myPageInfo]);
 
   const formatDiscount = (coupon) => {
     const discountNum = Number(coupon.discountNum || 0);
@@ -95,6 +102,24 @@ const MyPage = () => {
   useEffect(() => {
     let isMounted = true;
 
+    const loadMyPageInfo = async () => {
+      try {
+        setMyPageError("");
+        const nextMyPageInfo = await getMyPageInfo();
+
+        if (isMounted) {
+          setMyPageInfo(nextMyPageInfo);
+        }
+      } catch (error) {
+        if (isMounted) {
+          setMyPageError(
+            error.response?.data?.message ||
+              "마이페이지 정보를 불러오지 못했어요."
+          );
+        }
+      }
+    };
+
     const loadCoupons = async () => {
       try {
         setIsCouponLoading(true);
@@ -116,6 +141,7 @@ const MyPage = () => {
       }
     };
 
+    loadMyPageInfo();
     loadCoupons();
 
     return () => {
@@ -184,6 +210,13 @@ const MyPage = () => {
           className="relative h-[116px] w-[116px] rounded-full bg-[radial-gradient(circle_at_42%_34%,#f7c25a_0_14%,#3269a7_15%_34%,#d64536_35%_47%,#11325d_48%_100%)]"
           aria-label="프로필 수정"
         >
+          {myPageInfo?.profileImageUrl && (
+            <img
+              src={myPageInfo.profileImageUrl}
+              alt=""
+              className="h-full w-full rounded-full object-cover"
+            />
+          )}
           <span className="absolute bottom-[2px] right-[2px] flex h-[28px] w-[28px] items-center justify-center rounded-full bg-[#D9E0E6] text-[14px]">
             <img
               src={pencil}
@@ -193,11 +226,16 @@ const MyPage = () => {
           </span>
         </button>
         <h2 className="mt-[12px] text-[22px] font-bold text-[#000000]">
-          홍길동
+          {myPageInfo?.storeName || "가게명"}
         </h2>
         <p className="mt-[2px] max-w-full truncate text-[14px] font-medium text-[#7E858C]">
           {storeAddress}
         </p>
+        {myPageError && (
+          <p className="mt-[8px] text-[13px] font-medium text-[#DF0024]">
+            {myPageError}
+          </p>
+        )}
       </section>
 
       <section className="mt-[28px]">

@@ -2,6 +2,13 @@ import { useState, useRef, useEffect } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import arrowup from "../../assets/arrow-up.svg";
 import AuthButton from "../../components/auth/AuthButton";
+import {
+  getMyPageInfo,
+  getProfileImagePresignedUrl,
+  updateMyProfile,
+  updateMyProfileImage,
+  uploadProfileImageToS3,
+} from "../../apis/UserApi";
 
 import { LuPencil } from "react-icons/lu";
 import { GrLocation } from "react-icons/gr";
@@ -13,17 +20,49 @@ const ProfileEdit = () => {
   const fileInputRef = useRef(null);
 
   const [profileImage, setProfileImage] = useState(null);
+  const [profileImageFile, setProfileImageFile] = useState(null);
   const [storeName, setStoreName] = useState("");
   const [storeLink, setStoreLink] = useState("");
   const [storeLocation, setStoreLocation] = useState("");
   const [detailAddress, setDetailAddress] = useState("");
+  const [latitude, setLatitude] = useState(null);
+  const [longitude, setLongitude] = useState(null);
   const [isLinkInvalid, setIsLinkInvalid] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [formError, setFormError] = useState("");
 
   useEffect(() => {
+    let isMounted = true;
+
+    const loadMyPageInfo = async () => {
+      try {
+        const myPageInfo = await getMyPageInfo();
+
+        if (!isMounted) return;
+
+        setProfileImage(myPageInfo.profileImageUrl || null);
+        setStoreName(myPageInfo.storeName || "");
+        setStoreLink(myPageInfo.mapUrl || "");
+        setLatitude(myPageInfo.latitude ?? null);
+        setLongitude(myPageInfo.longitude ?? null);
+      } catch (error) {
+        if (isMounted) {
+          setFormError(
+            error.response?.data?.message ||
+              "마이페이지 정보를 불러오지 못했어요."
+          );
+        }
+      }
+    };
+
+    loadMyPageInfo();
+
     const savedForm = sessionStorage.getItem("profileEditFormTemp");
     if (savedForm) {
       const parsed = JSON.parse(savedForm);
       if (parsed.profileImage) setProfileImage(parsed.profileImage);
+      if (parsed.latitude) setLatitude(parsed.latitude);
+      if (parsed.longitude) setLongitude(parsed.longitude);
       if (parsed.storeName) setStoreName(parsed.storeName);
       if (parsed.storeLink) setStoreLink(parsed.storeLink);
       if (parsed.detailAddress) setDetailAddress(parsed.detailAddress);
@@ -39,16 +78,26 @@ const ProfileEdit = () => {
     const isReturningFromMap = sessionStorage.getItem("returningFromMap");
     if (isReturningFromMap === "true") {
       const savedLocation = localStorage.getItem("mypageStoreLocation");
+      const savedLatitude = localStorage.getItem("mypageStoreLatitude");
+      const savedLongitude = localStorage.getItem("mypageStoreLongitude");
       if (savedLocation) {
         setStoreLocation(savedLocation);
       }
+      if (savedLatitude) setLatitude(Number(savedLatitude));
+      if (savedLongitude) setLongitude(Number(savedLongitude));
       sessionStorage.removeItem("returningFromMap");
     }
+
+    return () => {
+      isMounted = false;
+    };
   }, [location]);
 
   const handleLocationClick = () => {
     const currentForm = {
       profileImage,
+      latitude,
+      longitude,
       storeName,
       storeLink,
       detailAddress,
@@ -74,7 +123,9 @@ const ProfileEdit = () => {
     const file = event.target.files[0];
     if (file) {
       const imageUrl = URL.createObjectURL(file);
+      setProfileImageFile(file);
       setProfileImage(imageUrl);
+      setFormError("");
     }
   };
 
@@ -82,17 +133,62 @@ const ProfileEdit = () => {
     fileInputRef.current?.click();
   };
 
-  const handleSubmit = () => {
-    if (storeLink.trim() === "") {
-      setIsLinkInvalid(false);
-      return;
-    }
+  const uploadProfileImage = async (imageFile) => {
+    const contentType = imageFile.type || "image/jpeg";
+    const presignedResponse = await getProfileImagePresignedUrl({
+      fileName: imageFile.name,
+      contentType,
+    });
 
+    await uploadProfileImageToS3({
+      presignedUrl: presignedResponse.presignedUrl,
+      file: imageFile,
+      contentType,
+    });
+
+    return presignedResponse.fileUrl;
+  };
+
+  const handleSubmit = async () => {
     const isValid = checkLinkValid(storeLink);
     setIsLinkInvalid(!isValid);
 
-    if (!isValid) {
+    if (!isValid || isSubmitting) {
       return;
+    }
+
+    if (latitude === null || longitude === null) {
+      setFormError("가게 위치를 선택해주세요.");
+      return;
+    }
+
+    try {
+      setIsSubmitting(true);
+      setFormError("");
+
+      await updateMyProfile({
+        storeName: storeName.trim(),
+        mapUrl: storeLink.trim(),
+        latitude,
+        longitude,
+      });
+
+      if (profileImageFile) {
+        const profileImageUrl = await uploadProfileImage(profileImageFile);
+        await updateMyProfileImage(profileImageUrl);
+      }
+
+      localStorage.setItem("mypageStoreLocation", storeLocation);
+      localStorage.setItem("mypageStoreLatitude", String(latitude));
+      localStorage.setItem("mypageStoreLongitude", String(longitude));
+      navigate("/mypage");
+    } catch (error) {
+      setFormError(
+        error.response?.data?.message ||
+          "프로필 정보를 수정하지 못했어요. 입력 정보를 확인해주세요."
+      );
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
@@ -147,7 +243,10 @@ const ProfileEdit = () => {
             </span>
             <input
               value={storeName}
-              onChange={(event) => setStoreName(event.target.value)}
+              onChange={(event) => {
+                setStoreName(event.target.value);
+                setFormError("");
+              }}
               placeholder="가게 이름을 입력해주세요"
               className="mt-[10px] h-[56px] w-full rounded-[10px] bg-[#F7F8FA] px-[16px] text-[16px] text-[#020913] font-medium outline-none placeholder:text-[#C1C7CE]"
             />
@@ -166,6 +265,8 @@ const ProfileEdit = () => {
                 placeholder="가게 링크를 입력해주세요"
                 onChange={(event) => {
                   setStoreLink(event.target.value);
+                  setIsLinkInvalid(false);
+                  setFormError("");
                 }}
                 className="min-w-0 flex-1 bg-transparent text-[16px] text-[#020913] font-medium outline-none placeholder:text-[#C1C7CE]"
               />
@@ -205,12 +306,17 @@ const ProfileEdit = () => {
               className="h-[56px] w-full rounded-[10px] bg-[#F7F8FA] px-[16px] text-[15px] font-semibold outline-none placeholder:text-[#C1C7CE]"
             />
           </label>
+          {formError && (
+            <p className="text-[14px] font-normal text-[#DF0024]">
+              {formError}
+            </p>
+          )}
         </div>
       </section>
 
       <div className="mt-auto px-[16px] pb-[calc(54px+env(safe-area-inset-bottom))]">
-        <AuthButton isActive onClick={handleSubmit}>
-          수정하기
+        <AuthButton isActive={!isSubmitting} onClick={handleSubmit}>
+          {isSubmitting ? "수정 중" : "수정하기"}
         </AuthButton>
       </div>
     </div>
