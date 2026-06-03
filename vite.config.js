@@ -44,9 +44,8 @@ export default defineConfig({
     open: true,
     proxy: {
       "/api": {
-        target: "https://spring.allligo-agent.cloud",
+        target: "http://spring.allligo-agent.cloud",
         changeOrigin: true,
-        secure: true,
       },
     },
   },
