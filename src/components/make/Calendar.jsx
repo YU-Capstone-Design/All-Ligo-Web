@@ -1,8 +1,13 @@
-import React, { useMemo, useState } from 'react'
+import { useMemo, useState } from 'react'
 import arrowup from '../../assets/arrow-up.svg'
 
 const Calendar = ({ selectedDate, onSelectDate }) => {
   const today = new Date()
+  const todayStart = new Date(
+    today.getFullYear(),
+    today.getMonth(),
+    today.getDate(),
+  )
 
   const [currentDate, setCurrentDate] = useState(
     new Date(today.getFullYear(), today.getMonth(), 1),
@@ -72,6 +77,16 @@ const Calendar = ({ selectedDate, onSelectDate }) => {
     )
   }
 
+  const isBeforeToday = (date) => {
+    const dateStart = new Date(
+      date.getFullYear(),
+      date.getMonth(),
+      date.getDate(),
+    )
+
+    return dateStart < todayStart
+  }
+
   const getDateColor = (dateItem, index) => {
     const dayIndex = index % 7
 
@@ -125,19 +140,25 @@ const Calendar = ({ selectedDate, onSelectDate }) => {
       <div className="mt-[9px] grid grid-cols-7 gap-y-[22px]">
         {calendarDates.map((dateItem, index) => {
           const isSelected = isSameDate(selectedDate, dateItem.fullDate)
+          const isDisabled = isBeforeToday(dateItem.fullDate)
 
           return (
             <button
               key={`${dateItem.fullDate.toISOString()}-${index}`}
               type="button"
+              disabled={isDisabled}
               onClick={() => onSelectDate(dateItem.fullDate)}
-              className="flex h-[24px] items-center justify-center"
+              className={`flex h-[24px] items-center justify-center ${
+                isDisabled ? 'cursor-not-allowed' : ''
+              }`}
             >
               <span
                 className={`flex h-[48px] w-[48px] items-center justify-center rounded-[10px] text-[16px] leading-[24px] ${
                   isSelected
                     ? 'bg-[#C9E2FF] border-[#3182f6] border-[1px]'
-                    : getDateColor(dateItem, index)
+                    : isDisabled
+                      ? 'text-[#CAD0D6]'
+                      : getDateColor(dateItem, index)
                 }`}
               >
                 {dateItem.date}

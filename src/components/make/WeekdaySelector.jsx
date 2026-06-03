@@ -9,11 +9,11 @@ const days = [
 ];
 
 const baseDayStyle =
-  "h-[63px] px-[12px] py-[8px] border rounded-[10px] text-center justify-center items-center flex text-[16px] leading-[33px] outline-none w-full cursor-pointer";
+  "flex h-[63px] flex-1 basis-0 flex-col items-center justify-center gap-[8px] rounded-[10px] border px-[12px] py-[8px] text-center text-[16px] leading-[33px] outline-none cursor-pointer";
 
-const WeekdaySelector = ({ selectedDay, onSelectDay }) => {
+const WeekdaySelector = ({ selectedDays, onToggleDay }) => {
   const getDayStyle = (day, colorClass = "text-[#000000]") => {
-    const isSelected = selectedDay === day;
+    const isSelected = selectedDays.includes(day);
 
     return `
       ${baseDayStyle}
@@ -21,7 +21,7 @@ const WeekdaySelector = ({ selectedDay, onSelectDay }) => {
       ${
         isSelected
           ? "border-[#3182F6] bg-[#C9E2FF]"
-          : "border-white bg-white"
+          : "border-[#F6F6F8] bg-[#F6F6F8]"
       }
     `;
   };
@@ -32,7 +32,7 @@ const WeekdaySelector = ({ selectedDay, onSelectDay }) => {
         <button
           key={day.label}
           type="button"
-          onClick={() => onSelectDay(day.label)}
+          onClick={() => onToggleDay(day.label)}
           className={getDayStyle(day.label, day.colorClass)}
         >
           {day.label}
