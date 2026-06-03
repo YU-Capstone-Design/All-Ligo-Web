@@ -1,24 +1,34 @@
-import React, { useState } from 'react'
+import { useState } from 'react'
 import plusicon from '../../assets/make/plusicon.svg'
+import noicon from '../../assets/auth/noicon.svg'
 import HashTagModal from './HashTagModal'
 import AuthButton from '../auth/AuthButton'
 
-const Keyword = ({ onNext }) => {
-  const [selectedMood, setSelectedMood] = useState('')
+const Keyword = ({
+  title,
+  onTitleChange,
+  selectedMood,
+  setSelectedMood,
+  includeWeather,
+  setIncludeWeather,
+  hashTags,
+  setHashTags,
+  prompt,
+  setPrompt,
+  onNext,
+}) => {
   const [selectedHashTagIndex, setSelectedHashTagIndex] = useState(null)
-  const [hashTags, setHashTags] = useState([])
   const [isHashTagModalOpen, setIsHashTagModalOpen] = useState(false)
-  const [prompt, setPrompt] = useState('')
 
   const moodTags = ['따뜻함', '차분함', '밝음']
 
-  const isNextActive = selectedMood && hashTags.length > 0
+  const isNextActive = title?.trim().length > 0 && selectedMood && hashTags.length > 0
 
   const moodCommonBtnStyle =
     'text-[20px] leading-[33px] border rounded-[10px] py-[8px] px-[12px] w-[118.04px] h-[49px]'
 
   const hashCommonBtnStyle =
-    'text-[20px] leading-[33px] border rounded-[10px] py-[8px] px-[16px] h-[49px] shrink-0 whitespace-nowrap'
+    'inline-flex items-center justify-center gap-[8px] text-[20px] leading-[33px] border rounded-[10px] py-[8px] pl-[16px] pr-[10px] h-[49px] shrink-0 whitespace-nowrap'
 
   const baseBtnStyle =
     'border-[#f6f6f8] bg-[#f6f6f8] text-black'
@@ -29,20 +39,36 @@ const Keyword = ({ onNext }) => {
   const handlePromptChange = (e) => {
     setPrompt(e.target.value)
 
-    const maxHeight = 360 // 임의 조정 프롬포트 최대 크기
+    const maxHeight = 396
 
     e.target.style.height = 'auto'
     e.target.style.height = `${Math.min(e.target.scrollHeight, maxHeight)}px`
   }
 
   const handleAddHashTag = (newHashTag) => {
-    setHashTags((prev) => [...prev, newHashTag])
-    setSelectedHashTagIndex(null)
+    setHashTags((prev) => {
+      const nextHashTags = [...prev, newHashTag]
+
+      setSelectedHashTagIndex(nextHashTags.length - 1)
+
+      return nextHashTags
+    })
+  }
+
+  const handleRemoveHashTag = (removeIndex) => {
+    setHashTags((prev) => prev.filter((_, index) => index !== removeIndex))
+    setSelectedHashTagIndex((prev) => {
+      if (prev === null) return null
+      if (prev === removeIndex) return null
+      if (prev > removeIndex) return prev - 1
+
+      return prev
+    })
   }
 
   return (
-    <div className="relative h-full flex flex-col">
-      <div className="px-[16px] mt-[12px]">
+    <div className="relative h-full flex flex-col overflow-hidden">
+      <div className="flex-1 min-h-0 overflow-y-auto px-[16px] pt-[12px] pb-[24px] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
         <div className="flex flex-col gap-[4px]">
           <span className="text-[24px] font-bold leading-[41px]">
             홍보물의 키워드를 알려주세요.
@@ -53,8 +79,52 @@ const Keyword = ({ onNext }) => {
           </span>
         </div>
 
+        <div className="flex flex-col gap-[8px] mt-[30px]">
+          <label className="font-pretendard font-medium leading-[21px] text-[#7e858c]">
+            제목
+          </label>
+
+          <input
+            value={title}
+            onChange={onTitleChange}
+            placeholder="ex) 우리가게 레모네이드 광고"
+            className="w-full h-[69px] rounded-[10px] bg-[#f6f6f8] px-[12px] text-[16px] leading-[24px] text-black placeholder:text-[#b0b8c1] outline-none"
+          />
+        </div>
+
+        {/* 날씨 정보 */}
+        <div className="flex flex-col mt-[38px]">
+          <span className="text-[14px] font-normal leading-[21px] text-[#7e858c]">
+            날씨 정보
+          </span>
+
+          <div className="mt-[12px] flex items-center justify-between">
+            <span className="font-pretendard text-[20px] font-medium leading-[21px] tracking-normal text-[#000000]">
+              실시간 날씨 정보를 포함하여 생성
+            </span>
+
+            <button
+              type="button"
+              role="switch"
+              aria-checked={includeWeather}
+              onClick={() => setIncludeWeather((prev) => !prev)}
+              className={`relative h-[32px] w-[56px] shrink-0 rounded-full transition-colors ${
+                includeWeather ? 'bg-[#3182f6]' : 'bg-[#d9d9d9]'
+              }`}
+            >
+              <span
+                className={`absolute top-[2px] h-[28px] w-[28px] rounded-full bg-white shadow-[0_1px_4px_rgba(0,0,0,0.18)] transition-transform ${
+                  includeWeather
+                    ? 'left-[26px]'
+                    : 'left-[2px]'
+                }`}
+              />
+            </button>
+          </div>
+        </div>
+
         {/* 분위기 태그 */}
-        <div className="flex flex-col gap-[8px] mt-[43.11px]">
+        <div className="flex flex-col gap-[8px] mt-[38px]">
           <span className="font-pretendard font-medium leading-[21px] text-[#7e858c]">
             분위기 태그
           </span>
@@ -91,6 +161,15 @@ const Keyword = ({ onNext }) => {
                   }`}
                 >
                   {tag}
+                  <img
+                    className="h-[25px] w-[25px] shrink-0"
+                    src={noicon}
+                    alt=""
+                    onClick={(event) => {
+                      event.stopPropagation()
+                      handleRemoveHashTag(index)
+                    }}
+                  />
                 </button>
               ))}
 
@@ -104,7 +183,7 @@ const Keyword = ({ onNext }) => {
           </div>
 
           {/* 프롬프트 */}
-          <div className="w-full flex flex-col gap-[8px] mt-[34px] bg-[#f6f6f8] rounded-[10px] p-[12px]">
+          <div className="w-full max-h-[449px] flex flex-col gap-[8px] mt-[34px] bg-[#f6f6f8] rounded-[10px] p-[12px] overflow-hidden">
             <span className="font-pretendard font-medium leading-[21px] text-[#7e858c]">
               프롬프트
             </span>
@@ -114,13 +193,13 @@ const Keyword = ({ onNext }) => {
               onChange={handlePromptChange}
               placeholder="AI에게 전할 말을 입력해주세요"
               rows={1}
-              className="w-full min-h-[33px] max-h-[449px] bg-transparent resize-none overflow-y-auto outline-none text-[16px] leading-[24px] text-black placeholder:text-[#b0b8c1] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
+              className="w-full min-h-[33px] max-h-[396px] bg-transparent resize-none overflow-y-auto outline-none text-[16px] leading-[24px] text-black placeholder:text-[#b0b8c1] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
             />
           </div>
         </div>
       </div>
 
-      <div className="mt-auto px-[16px] pb-[calc(18px+env(safe-area-inset-bottom))]">
+      <div className="shrink-0 px-[16px] pb-[calc(18px+env(safe-area-inset-bottom))]">
         <AuthButton
           isActive={!!isNextActive}
           onClick={onNext}

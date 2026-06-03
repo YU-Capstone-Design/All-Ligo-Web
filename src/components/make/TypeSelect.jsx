@@ -1,11 +1,8 @@
-import React, { useState } from 'react'
 import clipboard from '../../assets/make/clipboard.svg'
 import megaphone from '../../assets/make/megaphone.svg'
 import AuthButton from '../auth/AuthButton'
 
-const TypeSelect = ({ onNext }) => {
-  const [selectedType, setSelectedType] = useState('')
-
+const TypeSelect = ({ selectedType, setSelectedType, onNext }) => {
   const isNextActive = selectedType !== ''
 
   const baseCardStyle =
