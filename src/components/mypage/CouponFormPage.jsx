@@ -58,19 +58,38 @@ const DiscountOptionButton = ({ option, isSelected, onClick }) => (
   </button>
 );
 
-const CouponFormPage = ({ title, submitLabel, requireImage = false }) => {
+const toFormDiscountType = (discountType) =>
+  discountType === "AMOUNT" ? "price" : "rate";
+
+const CouponFormPage = ({
+  title,
+  submitLabel,
+  requireImage = false,
+  initialCoupon = null,
+  isSubmitting = false,
+  onSubmit,
+}) => {
   const fileInputRef = useRef(null);
-  const [menuName, setMenuName] = useState("");
-  const [discountType, setDiscountType] = useState("rate");
-  const [discountValue, setDiscountValue] = useState("");
-  const [imagePreview, setImagePreview] = useState(null);
+  const [menuName, setMenuName] = useState(initialCoupon?.menuName || "");
+  const [discountType, setDiscountType] = useState(
+    toFormDiscountType(initialCoupon?.discountType)
+  );
+  const [discountValue, setDiscountValue] = useState(
+    initialCoupon?.discountNum ? String(initialCoupon.discountNum) : ""
+  );
+  const [imagePreview, setImagePreview] = useState(
+    initialCoupon?.imageUrl || null
+  );
+  const [imageFile, setImageFile] = useState(null);
+  const [formError, setFormError] = useState("");
   const selectedOption = discountOptions.find(
     (option) => option.id === discountType
   );
   const canSubmit =
     menuName.trim() !== "" &&
     discountValue.trim() !== "" &&
-    (!requireImage || imagePreview !== null);
+    (!requireImage || imagePreview !== null) &&
+    !isSubmitting;
 
   const handleImageChange = (event) => {
     const file = event.target.files[0];
@@ -79,12 +98,35 @@ const CouponFormPage = ({ title, submitLabel, requireImage = false }) => {
       return;
     }
 
+    setImageFile(file);
     setImagePreview(URL.createObjectURL(file));
+    setFormError("");
   };
 
   const handleDiscountTypeChange = (nextType) => {
     setDiscountType(nextType);
     setDiscountValue("");
+    setFormError("");
+  };
+
+  const handleSubmit = async () => {
+    if (!canSubmit || !onSubmit) return;
+
+    try {
+      setFormError("");
+      await onSubmit({
+        menuName: menuName.trim(),
+        discountNum: Number(discountValue),
+        discountType: discountType === "rate" ? "RATE" : "AMOUNT",
+        imageFile,
+        currentImageUrl: initialCoupon?.imageUrl || "",
+      });
+    } catch (error) {
+      setFormError(
+        error.response?.data?.message ||
+          "쿠폰 저장에 실패했어요. 입력 정보를 다시 확인해주세요."
+      );
+    }
   };
 
   return (
@@ -132,7 +174,10 @@ const CouponFormPage = ({ title, submitLabel, requireImage = false }) => {
         <input
           id="coupon-menu-name"
           value={menuName}
-          onChange={(event) => setMenuName(event.target.value)}
+          onChange={(event) => {
+            setMenuName(event.target.value);
+            setFormError("");
+          }}
           placeholder="할인할 메뉴 이름을 입력해주세요"
           className="mt-[10px] h-[50px] w-full rounded-[8px] bg-[#F7F8FA] px-[16px] text-[15px] font-medium text-[#111111] outline-none placeholder:text-[#B4BAC0]"
         />
@@ -157,18 +202,26 @@ const CouponFormPage = ({ title, submitLabel, requireImage = false }) => {
           </span>
           <input
             value={discountValue}
-            onChange={(event) =>
-              setDiscountValue(event.target.value.replace(/[^0-9]/g, ""))
-            }
+            onChange={(event) => {
+              setDiscountValue(event.target.value.replace(/[^0-9]/g, ""));
+              setFormError("");
+            }}
             placeholder={selectedOption.placeholder}
             inputMode="numeric"
             className="min-w-0 flex-1 bg-transparent text-[15px] font-medium text-[#111111] outline-none placeholder:text-[#B4BAC0]"
           />
         </div>
+        {formError && (
+          <p className="mt-[12px] text-[13px] font-medium text-[#DF0024]">
+            {formError}
+          </p>
+        )}
       </main>
 
       <div className="pb-[calc(22px+env(safe-area-inset-bottom))]">
-        <AuthButton isActive={canSubmit}>{submitLabel}</AuthButton>
+        <AuthButton isActive={canSubmit} onClick={handleSubmit}>
+          {isSubmitting ? "저장 중" : submitLabel}
+        </AuthButton>
       </div>
     </div>
   );

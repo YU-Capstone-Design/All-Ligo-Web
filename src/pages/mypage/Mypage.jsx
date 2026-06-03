@@ -1,7 +1,8 @@
-import { useContext, useMemo, useState } from "react";
+import { useContext, useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import BottomNavigation from "../../components/BottomNavigation";
 import AuthContext from "../../contexts/AuthContext";
+import { deleteCoupon, getMyCoupons } from "../../apis/CouponApi";
 
 import { CiCirclePlus } from "react-icons/ci";
 import { MdOutlineLogout } from "react-icons/md";
@@ -15,9 +16,17 @@ import setup from "../../assets/set-up.png";
 import pencil from "../../assets/pencil.png";
 import appname from "../../assets/app-name.png";
 
-const CouponImage = () => (
+const CouponImage = ({ imageUrl }) => (
   <div className="h-[74px] w-[74px] shrink-0 overflow-hidden rounded-[12px] bg-[#d8d0c5]">
-    <div className="h-full w-full bg-[radial-gradient(circle_at_48%_42%,#f7eee2_0_13%,#a77d62_14%_27%,#f4e7d7_28%_34%,#6b4a38_35%_44%,#caa58b_45%_58%,#e8dfd5_59%_100%)]" />
+    {imageUrl ? (
+      <img
+        src={imageUrl}
+        alt=""
+        className="h-full w-full object-cover"
+      />
+    ) : (
+      <div className="h-full w-full bg-[radial-gradient(circle_at_48%_42%,#f7eee2_0_13%,#a77d62_14%_27%,#f4e7d7_28%_34%,#6b4a38_35%_44%,#caa58b_45%_58%,#e8dfd5_59%_100%)]" />
+    )}
   </div>
 );
 
@@ -26,11 +35,9 @@ const MyPage = () => {
   const { logout } = useContext(AuthContext);
   const [activeMenuId, setActiveMenuId] = useState(null);
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
-  const [couponList, setCouponList] = useState([
-    { id: 1, title: "돼지 국밥 오픈 할인", discount: "20%" },
-    { id: 2, title: "돼지 국밥 오픈 할인", discount: "20%" },
-    { id: 3, title: "돼지 국밥 오픈 할인", discount: "20%" },
-  ]);
+  const [couponList, setCouponList] = useState([]);
+  const [isCouponLoading, setIsCouponLoading] = useState(true);
+  const [couponError, setCouponError] = useState("");
 
   const storeAddress = useMemo(() => {
     const savedLocation = localStorage.getItem("mypageStoreLocation");
@@ -53,10 +60,29 @@ const MyPage = () => {
     }
   }, []);
 
-  const handleDelete = (id) => {
+  const formatDiscount = (coupon) => {
+    const discountNum = Number(coupon.discountNum || 0);
+
+    if (coupon.discountType === "AMOUNT") {
+      return `${discountNum.toLocaleString()}원`;
+    }
+
+    return `${discountNum}%`;
+  };
+
+  const handleDelete = async (id) => {
     if (window.confirm("정말 이 쿠폰을 삭제하시겠습니까?")) {
-      setCouponList(couponList.filter((coupon) => coupon.id !== id));
-      setActiveMenuId(null);
+      try {
+        await deleteCoupon(id);
+        setCouponList((prevCoupons) =>
+          prevCoupons.filter((coupon) => coupon.couponId !== id)
+        );
+        setActiveMenuId(null);
+      } catch (error) {
+        setCouponError(
+          error.response?.data?.message || "쿠폰 삭제에 실패했어요."
+        );
+      }
     }
   };
 
@@ -65,6 +91,37 @@ const MyPage = () => {
     setIsSettingsOpen(false);
     navigate("/owner-login");
   };
+
+  useEffect(() => {
+    let isMounted = true;
+
+    const loadCoupons = async () => {
+      try {
+        setIsCouponLoading(true);
+        setCouponError("");
+        const coupons = await getMyCoupons();
+        if (isMounted) {
+          setCouponList(Array.isArray(coupons) ? coupons : []);
+        }
+      } catch (error) {
+        if (isMounted) {
+          setCouponError(
+            error.response?.data?.message || "쿠폰 목록을 불러오지 못했어요."
+          );
+        }
+      } finally {
+        if (isMounted) {
+          setIsCouponLoading(false);
+        }
+      }
+    };
+
+    loadCoupons();
+
+    return () => {
+      isMounted = false;
+    };
+  }, []);
 
   return (
     <div className="relative min-h-[100dvh] bg-[#F7F8FA] px-[16px] pb-[102px] pt-[10px]">
@@ -167,20 +224,38 @@ const MyPage = () => {
           쿠폰 등록하기
         </button>
 
+        {couponError && (
+          <p className="mt-[12px] px-[4px] text-[13px] font-medium text-[#DF0024]">
+            {couponError}
+          </p>
+        )}
+
         <div className="mt-[14px] flex flex-col gap-[12px]">
+          {isCouponLoading && (
+            <p className="py-[24px] text-center text-[14px] font-medium text-[#9DA4AB]">
+              쿠폰을 불러오는 중입니다.
+            </p>
+          )}
+
+          {!isCouponLoading && couponList.length === 0 && (
+            <p className="py-[24px] text-center text-[14px] font-medium text-[#9DA4AB]">
+              등록된 쿠폰이 없습니다.
+            </p>
+          )}
+
           {couponList.map((coupon) => (
             <article
-              key={coupon.id}
+              key={coupon.couponId}
               className="relative flex rounded-[16px] bg-white p-[12px] shadow-[0_8px_20px_rgba(23,35,53,0.08)]"
             >
-              <CouponImage />
+              <CouponImage imageUrl={coupon.imageUrl} />
               <div className="ml-[14px] min-w-0 flex-1">
                 <h3 className="truncate text-[20px] font-bold text-[#3A3A3A]">
-                  {coupon.title}
+                  {coupon.menuName}
                 </h3>
                 <p className="mt-[3px] flex items-end gap-[2px]">
                   <span className="text-[40px] leading-[42px] font-bold text-[#3182F6]">
-                    {coupon.discount}
+                    {formatDiscount(coupon)}
                   </span>
                   <span className="pb-[3px] text-[14px] font-semibold text-[#000000]">
                     할인쿠폰
@@ -191,7 +266,9 @@ const MyPage = () => {
               <button
                 type="button"
                 onClick={() =>
-                  setActiveMenuId(activeMenuId === coupon.id ? null : coupon.id)
+                  setActiveMenuId(
+                    activeMenuId === coupon.couponId ? null : coupon.couponId
+                  )
                 }
                 className="absolute right-[18px] top-[4px] text-[22px] leading-none text-[#9DA4AB]"
                 aria-label="쿠폰 메뉴"
@@ -199,7 +276,7 @@ const MyPage = () => {
                 <HiOutlineDotsHorizontal />
               </button>
 
-              {activeMenuId === coupon.id && (
+              {activeMenuId === coupon.couponId && (
                 <div
                   className="absolute right-0 top-[30px] z-20 w-[230px] overflow-hidden rounded-[20px] border border-white/30 bg-white/25 py-[8px] shadow-[0_8px_20px_rgba(23,35,53,0.08)]"
                   style={{
@@ -224,7 +301,7 @@ const MyPage = () => {
 
                   <button
                     type="button"
-                    onClick={() => handleDelete(coupon.id)}
+                    onClick={() => handleDelete(coupon.couponId)}
                     className="flex h-[40px] w-full items-center justify-start gap-[10px] px-[16px] text-[15px] font-medium text-[#FF2D46] active:bg-gray-100/50"
                   >
                     <span className="text-[18px] -translate-y-[2px]">
