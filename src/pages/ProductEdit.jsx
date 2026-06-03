@@ -97,7 +97,6 @@ const ProductEdit = () => {
   const [weatherEnabled, setWeatherEnabled] = useState(false);
   const [selectedMood, setSelectedMood] = useState("따뜻함");
   const [hashTags, setHashTags] = useState([]);
-  const [selectedHashTagIndex, setSelectedHashTagIndex] = useState(null);
   const [isHashTagModalOpen, setIsHashTagModalOpen] = useState(false);
   const [prompt, setPrompt] = useState("");
   const [schedules, setSchedules] = useState([]);
@@ -118,24 +117,11 @@ const ProductEdit = () => {
   const isAddScheduleActive = selectedDays.length > 0;
 
   const handleAddHashTag = (newHashTag) => {
-    setHashTags((prev) => {
-      const nextHashTags = [...prev, newHashTag];
-
-      setSelectedHashTagIndex(nextHashTags.length - 1);
-
-      return nextHashTags;
-    });
+    setHashTags((prev) => [...prev, newHashTag]);
   };
 
   const handleRemoveHashTag = (removeIndex) => {
     setHashTags((prev) => prev.filter((_, index) => index !== removeIndex));
-    setSelectedHashTagIndex((prev) => {
-      if (prev === null) return null;
-      if (prev === removeIndex) return null;
-      if (prev > removeIndex) return prev - 1;
-
-      return prev;
-    });
   };
 
   const handleRemoveContentImage = (removeId) => {
@@ -293,7 +279,6 @@ const ProductEdit = () => {
         setSelectedMood(detail.mode || "따뜻함");
         setPrompt(detail.prompt || "");
         setHashTags(detail.tags || []);
-        setSelectedHashTagIndex((detail.tags || []).length > 0 ? 0 : null);
         setContentImages(
           (detail.imageUrls || []).map((url, index) => ({
             id: `${url}-${index}`,
@@ -418,12 +403,7 @@ const ProductEdit = () => {
               <button
                 key={`${tag}-${index}`}
                 type="button"
-                onClick={() => setSelectedHashTagIndex(index)}
-                className={`flex h-[49px] items-center gap-[8px] rounded-[10px] border px-[14px] text-[18px] font-normal leading-[33px] ${
-                  selectedHashTagIndex === index
-                    ? "border-[#3182F6] bg-[#3182F6] text-white"
-                    : "border-white bg-white text-black"
-                }`}
+                className="flex h-[49px] items-center gap-[8px] rounded-[10px] border border-[#3182F6] bg-[#3182F6] px-[14px] text-[18px] font-normal leading-[33px] text-white"
               >
                 {tag}
                 <img

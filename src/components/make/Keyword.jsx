@@ -17,7 +17,6 @@ const Keyword = ({
   setPrompt,
   onNext,
 }) => {
-  const [selectedHashTagIndex, setSelectedHashTagIndex] = useState(null)
   const [isHashTagModalOpen, setIsHashTagModalOpen] = useState(false)
 
   const moodTags = ['따뜻함', '차분함', '밝음']
@@ -46,24 +45,11 @@ const Keyword = ({
   }
 
   const handleAddHashTag = (newHashTag) => {
-    setHashTags((prev) => {
-      const nextHashTags = [...prev, newHashTag]
-
-      setSelectedHashTagIndex(nextHashTags.length - 1)
-
-      return nextHashTags
-    })
+    setHashTags((prev) => [...prev, newHashTag])
   }
 
   const handleRemoveHashTag = (removeIndex) => {
     setHashTags((prev) => prev.filter((_, index) => index !== removeIndex))
-    setSelectedHashTagIndex((prev) => {
-      if (prev === null) return null
-      if (prev === removeIndex) return null
-      if (prev > removeIndex) return prev - 1
-
-      return prev
-    })
   }
 
   return (
@@ -153,12 +139,8 @@ const Keyword = ({
               {hashTags.map((tag, index) => (
                 <button
                   key={`${tag}-${index}`}
-                  onClick={() => setSelectedHashTagIndex(index)}
-                  className={`${hashCommonBtnStyle} ${
-                    selectedHashTagIndex === index
-                      ? selectedBtnStyle
-                      : baseBtnStyle
-                  }`}
+                  type="button"
+                  className={`${hashCommonBtnStyle} ${selectedBtnStyle}`}
                 >
                   {tag}
                   <img
