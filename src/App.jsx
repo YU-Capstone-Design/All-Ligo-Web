@@ -15,6 +15,7 @@ import MakeComplete from "./pages/MakeComplete";
 import Home from "./pages/Home";
 import Product from "./pages/Product";
 import ProductEdit from "./pages/ProductEdit";
+import ClearPage from "./pages/ClearPage";
 import Queue from "./pages/Queue";
 import Notifications from "./pages/Notifications";
 
@@ -50,6 +51,7 @@ const App = () => {
           <Route path="/queue" element={<Queue />} />
           <Route path="/notifications" element={<Notifications />} />
           <Route path="/product/:productId/edit" element={<ProductEdit />} />
+          <Route path="/clear/:productId" element={<ClearPage />} />
           <Route path="/makecomplete" element={<MakeComplete />} />
 
           <Route path="/mypage" element={<MyPage />} />

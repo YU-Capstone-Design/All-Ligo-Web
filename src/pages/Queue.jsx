@@ -158,7 +158,7 @@ const Queue = () => {
               key={item.id}
               item={item}
               onClick={() =>
-                navigate(`/product/${item.id}/edit`, {
+                navigate(`/clear/${item.id}`, {
                   state: { contentType: item.type },
                 })
               }
