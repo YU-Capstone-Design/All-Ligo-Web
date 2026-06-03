@@ -10,6 +10,7 @@ import { getMyPromotions } from "../apis/PromotionApi";
 
 const contentTypeLabelMap = {
   BLOG: "블로그",
+  POST: "블로그",
   VIDEO: "쇼츠",
 };
 
