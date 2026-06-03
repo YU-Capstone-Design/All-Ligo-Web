@@ -1,351 +1,682 @@
-import { useMemo, useState } from "react";
-import { useLocation, useNavigate, useParams } from "react-router-dom";
-import { FaPlay } from "react-icons/fa6";
-import { IoChevronBack } from "react-icons/io5";
-import { LuCopy } from "react-icons/lu";
-import sparkleBlueIcon from "../assets/queue/star.png";
+import { useEffect, useRef, useState } from "react";
+import { useNavigate, useParams } from "react-router-dom";
+import calendarIcon from "../assets/calendar.svg";
+import alarm from "../assets/alarm.svg";
+import erroroutline from "../assets/make/erroroutline.svg";
+import arrowup from "../assets/arrow-up.svg";
+import plusicon from "../assets/make/plusicon.svg";
+import noicon from "../assets/auth/noicon.svg";
+import dismissIcon from "../assets/dismiss.svg";
+import warningImage from "../assets/image-warning.png";
+import MakeHeader from "../components/make/MakeHeader";
+import HashTagModal from "../components/make/HashTagModal";
+import Calendar from "../components/make/Calendar";
+import TimeModal from "../components/make/TimeModal";
+import WeekdaySelector from "../components/make/WeekdaySelector";
+import AuthButton from "../components/auth/AuthButton";
+import {
+  getPromotionDetail,
+  getPromotionPresignedUrl,
+  updatePromotion,
+  uploadFileToS3,
+} from "../apis/PromotionApi";
 
-const promptText =
-  "요즘 핫한 맛집/술집을 소개하는 짧은 영상\n퇴근 후나 친구들이랑 가볍게 한잔하기 좋은 분위기를 담아줘. 처음엔 가게 외관이 보이면서 자연스럽게 사람들이 들어가는 장면, 그 다음에는 음식이 지글지글 나오거나 김 올라오는 장면을 클로즈업으로 보여주고, 술 따르는 순간이나 잔 부딪히는 장면도 감각적으로 담아줘.\n중간중간 친구들이 웃으면서 대화하는 자연스러운 분위기도 넣고, 마지막에는 테이블 가득 차려진 음식이랑 전체 분위기를 보여주면 좋겠어. 전체적으로 따뜻한 색감에 너무 과하지 않게, 진짜 내가 가기 앉아있는 느낌 나게 만들어줘.\n자막은 부담스럽지 않게, 오늘은 여기 어때? 분위기까지 괜찮은 곳 정도로 자연스럽게 들어가면 좋겠어.";
+const moodTags = ["따뜻함", "차분함", "밝음"];
 
-const initialContent = {
-  title: "게시글 제목",
-  caption: promptText,
-  url: "https://map.naver.com/p/entry/...",
-  updatedAt: "2026. 05. 12",
+const dayOfWeekMap = {
+  월: "MONDAY",
+  화: "TUESDAY",
+  수: "WEDNESDAY",
+  목: "THURSDAY",
+  금: "FRIDAY",
+  토: "SATURDAY",
+  일: "SUNDAY",
 };
 
-const formatDate = (date) => {
-  const year = date.getFullYear();
-  const month = String(date.getMonth() + 1).padStart(2, "0");
-  const day = String(date.getDate()).padStart(2, "0");
+const dayLabelMap = Object.entries(dayOfWeekMap).reduce(
+  (acc, [label, value]) => ({
+    ...acc,
+    [value]: label,
+  }),
+  {}
+);
 
-  return `${year}. ${month}. ${day}`;
+const getScheduleLabel = ({ day, hour, minute, label }) =>
+  label || `${day}요일 / ${hour}시 ${minute}분`;
+
+const toDateTimeValue = (date) => {
+  if (!date) return null;
+
+  const pad = (value) => String(value).padStart(2, "0");
+
+  return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(
+    date.getDate()
+  )}T${pad(date.getHours())}:${pad(date.getMinutes())}:00`;
 };
 
-const getSavedContent = (productId) => ({
-  ...initialContent,
-  title:
-    localStorage.getItem(`queueItem:${productId}:title`) ||
-    initialContent.title,
-  caption:
-    localStorage.getItem(`queueItem:${productId}:caption`) ||
-    initialContent.caption,
-  url: localStorage.getItem(`queueItem:${productId}:url`) || initialContent.url,
-  updatedAt:
-    localStorage.getItem(`queueItem:${productId}:updatedAt`) ||
-    initialContent.updatedAt,
-});
+const getNextPublishTime = ({ day, hour, minute }) => {
+  const now = new Date();
+  const minPublishDate = new Date(now.getTime() + 60 * 60 * 1000);
+  const targetDayIndex = Object.keys(dayOfWeekMap).indexOf(day);
+  const todayIndex = (now.getDay() + 6) % 7;
+  const nextDate = new Date(now);
+  let diff = targetDayIndex - todayIndex;
 
-const copyText = async (value) => {
-  if (navigator.clipboard?.writeText) {
-    await navigator.clipboard.writeText(value);
-    return;
+  if (diff < 0) diff += 7;
+
+  nextDate.setDate(now.getDate() + diff);
+  nextDate.setHours(hour, minute, 0, 0);
+
+  if (nextDate <= minPublishDate) {
+    nextDate.setDate(nextDate.getDate() + 7);
   }
 
-  const textarea = document.createElement("textarea");
-  textarea.value = value;
-  textarea.style.position = "fixed";
-  textarea.style.opacity = "0";
-  document.body.appendChild(textarea);
-  textarea.select();
-  document.execCommand("copy");
-  document.body.removeChild(textarea);
+  return toDateTimeValue(nextDate);
 };
 
-const CopyButton = ({ value }) => {
-  const [isCopied, setIsCopied] = useState(false);
+const parseSchedule = (schedule) => {
+  const publishDate = schedule.publishTime
+    ? new Date(schedule.publishTime)
+    : null;
 
-  const handleCopy = async () => {
-    await copyText(value);
-    setIsCopied(true);
-    window.setTimeout(() => setIsCopied(false), 900);
+  return {
+    id: schedule.scheduleId || `${schedule.dayOfWeek}-${schedule.publishTime}`,
+    day: dayLabelMap[schedule.dayOfWeek] || "목",
+    hour: publishDate?.getHours() ?? 0,
+    minute: publishDate?.getMinutes() ?? 0,
+    publishTime: schedule.publishTime,
   };
-
-  return (
-    <button
-      type="button"
-      onClick={handleCopy}
-      className={`absolute right-[10px] top-[10px] flex h-[32px] w-[32px] items-center justify-center rounded-[8px] transition-all active:scale-90 ${
-        isCopied
-          ? "bg-[#E8F3FF] text-[#2880EB]"
-          : "text-[#9DA4AB] hover:bg-[#F3F5F7]"
-      }`}
-      aria-label={isCopied ? "복사됨" : "복사"}
-    >
-      <LuCopy className="text-[21px]" />
-      {isCopied && (
-        <span className="absolute right-[34px] top-1/2 -translate-y-1/2 whitespace-nowrap rounded-[6px] bg-[#2880EB] px-[8px] py-[4px] text-[11px] font-bold text-white shadow-[0_4px_12px_rgba(40,128,235,0.25)]">
-          복사됨
-        </span>
-      )}
-    </button>
-  );
 };
-
-const InfoCard = ({
-  label,
-  children,
-  copyValue = "",
-  className = "",
-  labelClassName = "",
-  contentClassName = "",
-}) => (
-  <section className={`relative rounded-[8px] bg-white p-[14px] ${className}`}>
-    {copyValue && <CopyButton value={copyValue} />}
-    <p
-      className={`text-[12px] font-semibold leading-[18px] text-[#7E858C] ${labelClassName}`}
-    >
-      {label}
-    </p>
-    <div
-      className={`mt-[8px] text-[18px] font-bold leading-[27px] text-[#111111] ${contentClassName}`}
-    >
-      {children}
-    </div>
-  </section>
-);
-
-const EditableInfoCard = ({
-  label,
-  value,
-  onChange,
-  multiline = false,
-  labelClassName = "",
-  inputClassName = "",
-}) => (
-  <section className="relative rounded-[8px] bg-white p-[14px]">
-    <CopyButton value={value} />
-    <label
-      className={`text-[12px] font-semibold leading-[18px] text-[#9DA4AB] ${labelClassName}`}
-    >
-      {label}
-    </label>
-    {multiline ? (
-      <textarea
-        value={value}
-        onChange={(event) => onChange(event.target.value)}
-        className="mt-[8px] min-h-[260px] w-full resize-none bg-transparent pr-[30px] text-[14px] font-bold leading-[24px] text-[#111111] outline-none"
-      />
-    ) : (
-      <input
-        value={value}
-        onChange={(event) => onChange(event.target.value)}
-        className={`mt-[8px] w-full bg-transparent pr-[30px] text-[18px] font-bold leading-[27px] text-[#111111] outline-none ${inputClassName}`}
-      />
-    )}
-  </section>
-);
-
-const ScheduleInfo = ({ updatedAt }) => (
-  <div className="mt-[8px] space-y-[18px] px-[4px]">
-    <div>
-      <p className="text-[12px] font-semibold leading-[18px] text-[#7E858C]">
-        최근 수정일
-      </p>
-      <p className="mt-[6px] text-[18px] font-bold leading-[27px] text-[#20242A]">
-        {updatedAt}
-      </p>
-    </div>
-    <div>
-      <p className="text-[12px] font-semibold leading-[18px] text-[#7E858C]">
-        배포 요일
-      </p>
-      <p className="mt-[6px] text-[18px] font-bold leading-[27px] text-[#20242A]">
-        2026. 05. 12
-      </p>
-    </div>
-    <div>
-      <p className="text-[12px] font-semibold leading-[18px] text-[#7E858C]">
-        배포 시간
-      </p>
-      <p className="mt-[6px] text-[18px] font-bold leading-[27px] text-[#20242A]">
-        16시 15분
-      </p>
-    </div>
-  </div>
-);
 
 const ProductEdit = () => {
   const navigate = useNavigate();
-  const location = useLocation();
   const { productId } = useParams();
-  const isVideo = useMemo(
-    () =>
-      location.state?.contentType
-        ? location.state.contentType === "영상"
-        : productId === "2",
-    [location.state?.contentType, productId],
-  );
-  const [content, setContent] = useState(() => getSavedContent(productId));
-  const [isEditing, setIsEditing] = useState(false);
+  const [title, setTitle] = useState("");
+  const [contentImages, setContentImages] = useState([]);
+  const [contentType, setContentType] = useState("BLOG");
+  const [weatherEnabled, setWeatherEnabled] = useState(false);
+  const [selectedMood, setSelectedMood] = useState("따뜻함");
+  const [hashTags, setHashTags] = useState([]);
+  const [selectedHashTagIndex, setSelectedHashTagIndex] = useState(null);
+  const [isHashTagModalOpen, setIsHashTagModalOpen] = useState(false);
+  const [prompt, setPrompt] = useState("");
+  const [schedules, setSchedules] = useState([]);
+  const [isScheduleModalOpen, setIsScheduleModalOpen] = useState(false);
+  const [selectedDays, setSelectedDays] = useState([]);
+  const [uploadTime, setUploadTime] = useState({
+    hour: 0,
+    minute: 0,
+  });
+  const [isTimeModalOpen, setIsTimeModalOpen] = useState(false);
+  const [selectedEndDate, setSelectedEndDate] = useState(null);
+  const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [errorMessage, setErrorMessage] = useState("");
+  const fileInputRef = useRef(null);
 
-  const updateContent = (key, value) => {
-    setContent((prev) => ({ ...prev, [key]: value }));
+  const isAddScheduleActive = selectedDays.length > 0;
+
+  const handleAddHashTag = (newHashTag) => {
+    setHashTags((prev) => {
+      const nextHashTags = [...prev, newHashTag];
+
+      setSelectedHashTagIndex(nextHashTags.length - 1);
+
+      return nextHashTags;
+    });
   };
 
-  const saveContent = () => {
-    const updatedAt = formatDate(new Date());
+  const handleRemoveHashTag = (removeIndex) => {
+    setHashTags((prev) => prev.filter((_, index) => index !== removeIndex));
+    setSelectedHashTagIndex((prev) => {
+      if (prev === null) return null;
+      if (prev === removeIndex) return null;
+      if (prev > removeIndex) return prev - 1;
 
-    localStorage.setItem(`queueItem:${productId}:title`, content.title);
-    localStorage.setItem(`queueItem:${productId}:caption`, content.caption);
-    localStorage.setItem(`queueItem:${productId}:url`, content.url);
-    localStorage.setItem(`queueItem:${productId}:updatedAt`, updatedAt);
-    setContent((prev) => ({ ...prev, updatedAt }));
-    setIsEditing(false);
+      return prev;
+    });
   };
 
-  const deleteQueueItem = () => {
-    const deletedItemIds = JSON.parse(
-      localStorage.getItem("deletedQueueItemIds") || "[]",
-    );
-    const nextDeletedItemIds = Array.from(
-      new Set([...deletedItemIds, Number(productId)]),
-    );
-
-    localStorage.setItem(
-      "deletedQueueItemIds",
-      JSON.stringify(nextDeletedItemIds),
-    );
-    navigate("/queue");
+  const handleRemoveContentImage = (removeId) => {
+    setContentImages((prev) => prev.filter((image) => image.id !== removeId));
   };
 
-  return (
-    <div className="no-scrollbar h-[100dvh] overflow-y-auto bg-[#F3F4F6] px-[16px] pb-[calc(24px+env(safe-area-inset-bottom))]">
-      <header className="relative flex h-[72px] items-center justify-center">
-        <button
-          type="button"
-          onClick={() => navigate(-1)}
-          className="absolute left-[0px] flex h-[40px] w-[40px] items-center justify-center"
-          aria-label="뒤로가기"
-        >
-          <IoChevronBack className="text-[26px] text-[#424950]" />
-        </button>
-        <h1 className="text-[14px] font-bold text-[#242A2F]">
-          홈페이지 게시물
-        </h1>
-      </header>
+  const handleImageAddClick = () => {
+    if (contentImages.length >= 5) return;
 
-      <main>
-        <h2 className="text-[24px] font-bold leading-[33px] text-[#000000]">
-          <span className="text-[#3182F6]">'돼지상회'</span> 홍보용 블로그가
-          <br />
-          완성되었습니다!
-        </h2>
+    fileInputRef.current?.click();
+  };
 
-        <div className="mt-[14px] flex min-h-[45px] items-center gap-[10px] rounded-[8px] bg-[#E8F3FF] px-[12px]">
-          <img
-            className="h-[25px] w-[25px] shrink-0 object-contain"
-            src={sparkleBlueIcon}
-            alt=""
-          />
-          <p className="text-[14px] font-semibold leading-[24px] text-[#000000]">
-            {isVideo
-              ? "18:00에 YouTube에 자동 업로드 될 예정입니다"
-              : "지금 바로 블로그에 붙여넣고 생성해주세요!"}
-          </p>
-        </div>
+  const handleImageChange = (event) => {
+    const files = Array.from(event.target.files || []);
+    const imageFiles = files.filter((file) => file.type.startsWith("image/"));
+    const remainingCount = 5 - contentImages.length;
+    const selectedImages = imageFiles.slice(0, remainingCount);
 
-        <div className="mt-[14px] space-y-[12px]">
-          {isEditing && !isVideo ? (
-            <EditableInfoCard
-              label="제목"
-              value={content.title}
-              onChange={(value) => updateContent("title", value)}
-              labelClassName="text-[14px] leading-[20px] text-[#7E858C]"
-              inputClassName="text-[24px] leading-[32px] text-[#000000]"
-            />
-          ) : (
-            <InfoCard
-              label="제목"
-              copyValue={isVideo ? "" : content.title}
-              labelClassName="text-[14px] leading-[20px] text-[#7E858C]"
-              contentClassName="text-[24px] leading-[32px] text-[#000000]"
-            >
-              {content.title}
-            </InfoCard>
-          )}
+    setContentImages((prev) => [
+      ...prev,
+      ...selectedImages.map((file) => ({
+        id: `${file.name}-${file.lastModified}-${Math.random()}`,
+        file,
+        url: URL.createObjectURL(file),
+      })),
+    ]);
 
-          {isVideo ? (
-            <>
-              <section className="mx-auto flex h-[660px] w-full max-w-[400px] items-center justify-center rounded-[8px] bg-[#B8BEC4]">
-                <span className="flex h-[34px] w-[34px] items-center justify-center rounded-full bg-[#8C969F] text-white/80">
-                  <FaPlay className="ml-[2px] text-[14px] text-[#B8BEC4]" />
-                </span>
-              </section>
+    event.target.value = "";
+  };
 
-              <InfoCard label="캡션">
-                <p className="whitespace-pre-line text-[16px] font-semibold leading-[26px] text-[#000000]">
-                  {content.caption}
-                </p>
-              </InfoCard>
-            </>
-          ) : isEditing ? (
-            <EditableInfoCard
-              label="캡션"
-              value={content.caption}
-              onChange={(value) => updateContent("caption", value)}
-              multiline
-            />
-          ) : (
-            <InfoCard label="캡션" copyValue={content.caption}>
-              <p className="whitespace-pre-line text-[16px] font-semibold leading-[26px] text-[#000000]">
-                {content.caption}
-              </p>
-            </InfoCard>
-          )}
+  const handleRemoveSchedule = (removeId) => {
+    setSchedules((prev) => prev.filter((schedule) => schedule.id !== removeId));
+  };
 
-          {isEditing && !isVideo ? (
-            <EditableInfoCard
-              label="연결 URL"
-              value={content.url}
-              onChange={(value) => updateContent("url", value)}
-            />
-          ) : (
-            <InfoCard label="연결 URL" copyValue={content.url}>
-              <p className="truncate text-[24px] font-bold leading-[28px] text-[#3182F6]">
-                {content.url}
-              </p>
-            </InfoCard>
-          )}
+  const handleToggleDay = (day) => {
+    setSelectedDays((prev) =>
+      prev.includes(day)
+        ? prev.filter((selectedDay) => selectedDay !== day)
+        : [...prev, day]
+    );
+  };
 
-          <ScheduleInfo updatedAt={content.updatedAt} />
-        </div>
+  const handleAddSchedules = () => {
+    if (!isAddScheduleActive) return;
 
-        {isVideo ? (
-          <button
-            type="button"
-            onClick={deleteQueueItem}
-            className="mt-[24px] h-[58px] w-full rounded-[12px] bg-[#FFEAEB] text-[16px] font-bold text-[#DA0004]"
-          >
-            삭제
-          </button>
-        ) : (
-          <div className="mt-[24px] grid grid-cols-[1fr_82px] gap-[12px]">
+    setSchedules((prev) => [
+      ...prev,
+      ...selectedDays.map((day) => ({
+        id: `${day}-${uploadTime.hour}-${uploadTime.minute}-${Date.now()}-${Math.random()}`,
+        day,
+        hour: uploadTime.hour,
+        minute: uploadTime.minute,
+      })),
+    ]);
+    setSelectedDays([]);
+    setIsScheduleModalOpen(false);
+  };
+
+  const handlePromptChange = (e) => {
+    setPrompt(e.target.value);
+    e.target.style.height = "auto";
+    e.target.style.height = `${Math.min(e.target.scrollHeight, 360)}px`;
+  };
+
+  const handleSubmit = async () => {
+    if (!title.trim() || isSubmitting) return;
+
+    if (contentImages.length === 0) {
+      setErrorMessage("홍보 이미지는 1장 이상 필요해요.");
+      return;
+    }
+
+    if (schedules.length === 0) {
+      setErrorMessage("업로드 시간은 1개 이상 필요해요.");
+      return;
+    }
+
+    try {
+      setIsSubmitting(true);
+      setErrorMessage("");
+
+      const deadlineDate = selectedEndDate ? new Date(selectedEndDate) : null;
+
+      if (deadlineDate) {
+        deadlineDate.setHours(23, 59, 0, 0);
+      }
+
+      const imageUrls = await Promise.all(
+        contentImages.map(async (image) => {
+          if (!image.file) return image.url;
+
+          const uploadContentType = image.file.type || "image/jpeg";
+          const presignedResponse = await getPromotionPresignedUrl({
+            fileName: image.file.name,
+            contentType: uploadContentType,
+          });
+
+          await uploadFileToS3({
+            presignedUrl: presignedResponse.presignedUrl,
+            file: image.file,
+            contentType: uploadContentType,
+          });
+
+          return presignedResponse.fileUrl;
+        })
+      );
+
+      await updatePromotion({
+        promotionId: productId,
+        promotionForm: {
+          promotionTitle: title.trim(),
+          contentType,
+          prompt,
+          weatherEnabled,
+          mode: selectedMood,
+          deadline: toDateTimeValue(deadlineDate),
+          imageUrls: imageUrls.filter(Boolean),
+          tags: hashTags,
+          schedules: schedules.map((schedule) => ({
+            dayOfWeek: dayOfWeekMap[schedule.day],
+            publishTime:
+              schedule.publishTime ||
+              getNextPublishTime({
+                day: schedule.day,
+                hour: schedule.hour,
+                minute: schedule.minute,
+              }),
+          })),
+        },
+      });
+
+      navigate("/product");
+    } catch (error) {
+      setErrorMessage(
+        error.response?.status === 401
+          ? "로그인이 만료되었어요. 다시 로그인 후 시도해주세요."
+          : error.response?.data?.message ||
+              "홍보 수정 요청에 실패했어요. 잠시 후 다시 시도해주세요."
+      );
+      setIsSubmitting(false);
+    }
+  };
+
+  useEffect(() => {
+    const loadPromotionDetail = async () => {
+      try {
+        setIsLoading(true);
+        setErrorMessage("");
+
+        const detail = await getPromotionDetail(productId);
+
+        setTitle(detail.promotionTitle || "");
+        setContentType(detail.contentType || "BLOG");
+        setWeatherEnabled(!!detail.weatherEnabled);
+        setSelectedMood(detail.mode || "따뜻함");
+        setPrompt(detail.prompt || "");
+        setHashTags(detail.tags || []);
+        setSelectedHashTagIndex((detail.tags || []).length > 0 ? 0 : null);
+        setContentImages(
+          (detail.imageUrls || []).map((url, index) => ({
+            id: `${url}-${index}`,
+            url,
+          }))
+        );
+        setSchedules((detail.schedules || []).map(parseSchedule));
+        setSelectedEndDate(detail.deadline ? new Date(detail.deadline) : null);
+      } catch (error) {
+        setErrorMessage(
+          error.response?.status === 404
+            ? "해당 홍보 요청을 찾을 수 없어요."
+            : error.response?.status === 401
+              ? "로그인이 만료되었어요. 다시 로그인 후 시도해주세요."
+              : "홍보 정보를 불러오지 못했어요. 잠시 후 다시 시도해주세요."
+        );
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    loadPromotionDetail();
+  }, [productId]);
+
+  const renderEditContent = () => (
+    <>
+      <main className="no-scrollbar flex-1 overflow-y-auto px-[8px] pb-[20px]">
+        <input
+          ref={fileInputRef}
+          type="file"
+          accept="image/*"
+          multiple
+          className="hidden"
+          onChange={handleImageChange}
+        />
+
+        <section className="mt-[18px] flex items-center gap-[4px] px-[4px]">
+          <img className="h-[32px] w-[32px]" src={calendarIcon} alt="" />
+          <span className="text-[16px] font-semibold leading-[21px] text-[#424950]">
+            콘텐츠 정보
+          </span>
+        </section>
+
+        <section className="mt-[12px] w-full overflow-hidden">
+          <div className="no-scrollbar flex w-full gap-[8px] overflow-x-auto">
+            {contentImages.map((image) => (
+              <div
+                key={image.id}
+                className="relative h-[160px] w-[148px] shrink-0 overflow-hidden rounded-[4px] bg-[#8f969c]"
+              >
+                {image.url && (
+                  <img
+                    className="h-full w-full object-cover"
+                    src={image.url}
+                    alt="홍보 이미지"
+                  />
+                )}
+                <button
+                  type="button"
+                  onClick={() => handleRemoveContentImage(image.id)}
+                  className="absolute right-[8px] top-[8px] flex h-[25px] w-[25px] items-center justify-center"
+                >
+                  <img className="h-[25px] w-[25px]" src={noicon} alt="삭제" />
+                </button>
+              </div>
+            ))}
+
             <button
               type="button"
-              onClick={() => {
-                if (isEditing) {
-                  saveContent();
-                  return;
-                }
-
-                setIsEditing(true);
-              }}
-              className="h-[58px] rounded-[12px] bg-[#E8F3FF] text-[16px] font-bold text-[#2880EB]"
+              onClick={handleImageAddClick}
+              className="flex h-[160px] w-[148px] shrink-0 items-center justify-center rounded-[4px] bg-[#e8f3ff]"
             >
-              {isEditing ? "완료" : "수정"}
-            </button>
-            <button
-              type="button"
-              onClick={deleteQueueItem}
-              className="h-[58px] rounded-[12px] bg-[#FFEAEB] text-[16px] font-bold text-[#DA0004]"
-            >
-              삭제
+              <img
+                className="h-[50px] w-[50px]"
+                src={plusicon}
+                alt="이미지 추가"
+              />
             </button>
           </div>
+        </section>
+
+        <section className="mt-[12px] flex h-[86px] flex-col items-start gap-[8px] rounded-[10px] bg-white p-[12px]">
+          <label className="text-[14px] font-semibold leading-[21px] text-[#7E858C]">
+            제목
+          </label>
+          <input
+            value={title}
+            onChange={(e) => setTitle(e.target.value)}
+            placeholder="ex) 우리가게 레몬에이드 광고"
+            className="w-full bg-transparent text-[16px] leading-[33px] text-black outline-none placeholder:text-[#B4BAC0]"
+          />
+        </section>
+
+        <section className="mt-[18px]">
+          <span className="px-[12px] font-pretendard text-[14px] font-semibold leading-[21px] text-[#7E858C]">
+            분위기 태그
+          </span>
+          <div className="mt-[8px] flex gap-[8px]">
+            {moodTags.map((tag) => (
+              <button
+                key={tag}
+                type="button"
+                onClick={() => setSelectedMood(tag)}
+                className={`h-[49px] flex-1 rounded-[10px] border px-[12px] py-[8px] text-[20px] font-normal leading-[33px] ${
+                  selectedMood === tag
+                    ? "border-[#3182F6] bg-[#3182F6] text-white"
+                    : "border-white bg-white text-black"
+                }`}
+              >
+                {tag}
+              </button>
+            ))}
+          </div>
+        </section>
+
+        <section className="mt-[18px]">
+          <span className="px-[12px] font-pretendard text-[14px] font-semibold leading-[21px] text-[#7E858C]">
+            해시태그
+          </span>
+          <div className="mt-[8px] flex flex-wrap gap-[8px]">
+            {hashTags.map((tag, index) => (
+              <button
+                key={`${tag}-${index}`}
+                type="button"
+                onClick={() => setSelectedHashTagIndex(index)}
+                className={`flex h-[49px] items-center gap-[8px] rounded-[10px] border px-[14px] text-[18px] font-normal leading-[33px] ${
+                  selectedHashTagIndex === index
+                    ? "border-[#3182F6] bg-[#3182F6] text-white"
+                    : "border-white bg-white text-black"
+                }`}
+              >
+                {tag}
+                <img
+                  className="h-[25px] w-[25px]"
+                  src={noicon}
+                  alt=""
+                  onClick={(event) => {
+                    event.stopPropagation();
+                    handleRemoveHashTag(index);
+                  }}
+                />
+              </button>
+            ))}
+            <button
+              type="button"
+              onClick={() => setIsHashTagModalOpen(true)}
+              className="flex h-[49px] w-[58px] items-center justify-center rounded-[10px] bg-[#E8F3FF]"
+            >
+              <img
+                className="h-[25px] w-[25px]"
+                src={plusicon}
+                alt="해시태그 추가"
+              />
+            </button>
+          </div>
+        </section>
+
+        <section className="mt-[18px] rounded-[10px] bg-white p-[12px]">
+          <label className="text-[14px] font-semibold leading-[21px] text-[#7E858C]">
+            프롬프트
+          </label>
+          <textarea
+            value={prompt}
+            onChange={handlePromptChange}
+            className="scrollbar-hide mt-[8px] min-h-[245px] w-full resize-none bg-transparent text-[15px] leading-[27px] text-black outline-none"
+          />
+        </section>
+
+        <section className="mt-[18px] flex items-center gap-[8px] px-[4px]">
+          <img className="h-[32px] w-[32px]" src={alarm} alt="" />
+          <span className="text-[16px] font-semibold not-italic leading-[21px] text-[#424950]">
+            업로드 시간
+          </span>
+        </section>
+
+        <section className="mt-[8px] flex flex-col gap-[10px]">
+          {schedules.map((schedule) => (
+            <div
+              key={schedule.id}
+              className="flex items-center justify-between rounded-[10px] bg-white py-[18px] pl-[16px] pr-[10px]"
+            >
+              <span className="font-['Apple_SD_Gothic_Neo'] text-[20px] font-medium leading-[33px] tracking-[-0.5px] text-black">
+                {getScheduleLabel(schedule)}
+              </span>
+              <button
+                type="button"
+                onClick={() => handleRemoveSchedule(schedule.id)}
+                className="flex h-[25px] w-[25px] items-center justify-center"
+              >
+                <img className="h-[25px] w-[25px]" src={noicon} alt="삭제" />
+              </button>
+            </div>
+          ))}
+
+          <button
+            type="button"
+            onClick={() => setIsScheduleModalOpen(true)}
+            className="flex h-[49px] w-full flex-col items-center justify-center gap-[8px] self-stretch rounded-[10px] bg-[#E8F3FF] px-[16px] py-[8px] text-[24px] leading-[24px] text-[#3182F6]"
+          >
+            +
+          </button>
+        </section>
+
+        <section className="mt-[18px]">
+          <div className="flex items-center gap-[8px] px-[4px]">
+            <img className="h-[32px] w-[32px]" src={calendarIcon} alt="" />
+            <span className="font-['Apple_SD_Gothic_Neo'] text-[16px] font-semibold leading-[16px] tracking-[-0.5px] text-[#424950]">
+              업로드 마감 (선택)
+            </span>
+          </div>
+          <Calendar
+            selectedDate={selectedEndDate}
+            onSelectDate={setSelectedEndDate}
+          />
+        </section>
+
+        <section className="mt-[14px] flex items-center gap-[8px] px-[4px]">
+          <img className="h-[32px] w-[32px]" src={dismissIcon} alt="" />
+          <span className="text-[16px] font-semibold leading-[21px] text-[#424950]">
+            스케줄링 삭제
+          </span>
+        </section>
+
+        <button
+          type="button"
+          onClick={() => setIsDeleteModalOpen(true)}
+          className="mt-[14px] h-[62px] w-full rounded-[10px] bg-white px-[22px] text-left text-[16px] font-normal leading-[34px] text-[#DC3436]"
+        >
+          스케줄링 삭제하기
+        </button>
+
+        {errorMessage && (
+          <p className="mt-[12px] px-[12px] text-[14px] leading-[21px] text-[#ED0404]">
+            {errorMessage}
+          </p>
         )}
       </main>
+
+      <div className="px-[8px] pb-[calc(18px+env(safe-area-inset-bottom))] pt-[8px]">
+        <AuthButton
+          isActive={
+            !!title.trim() &&
+            contentImages.length > 0 &&
+            schedules.length > 0 &&
+            !isLoading &&
+            !isSubmitting
+          }
+          onClick={handleSubmit}
+        >
+          {isSubmitting ? "수정 중..." : "수정 완료"}
+        </AuthButton>
+      </div>
+    </>
+  );
+
+  const renderScheduleForm = () => (
+    <div
+      className="absolute inset-0 z-40 flex items-end bg-black/55"
+      onClick={() => setIsScheduleModalOpen(false)}
+    >
+      <div
+        className="w-full rounded-t-[20px] bg-white px-[16px] pb-[calc(18px+env(safe-area-inset-bottom))] pt-[20px]"
+        onClick={(e) => e.stopPropagation()}
+      >
+        <div className="flex flex-col">
+          <div className="flex items-center gap-[14px] rounded-[20px] bg-[#e8f3ff] px-[12px] py-[12px]">
+            <img src={erroroutline} alt="안내" />
+            <span className="text-[14px] leading-[24px] text-[#424950]">
+              해당 게시글 생성은 1-2시간이 소요되므로 현재 시간부터
+              <br />
+              1시간 뒤 시간부터 설정 가능합니다.
+            </span>
+          </div>
+
+          <span className="mt-[28px] px-[12px] text-[14px] font-semibold text-[#7e858c]">
+            업로드 요일 선택
+          </span>
+
+          <div className="mt-[10px]">
+            <WeekdaySelector
+              selectedDays={selectedDays}
+              onToggleDay={handleToggleDay}
+            />
+          </div>
+
+          <button
+            type="button"
+            onClick={() => setIsTimeModalOpen(true)}
+            className="mt-[20px] flex h-[86px] w-full items-center justify-between rounded-[10px] bg-[#F6F6F8] p-[12px]"
+          >
+            <div className="flex flex-col gap-[8px] text-left">
+              <span className="text-[14px] font-semibold leading-[21px] text-[#7E858C]">
+                시간 선택
+              </span>
+
+              <span className="text-[24px] font-normal leading-[33px] text-[#000000]">
+                {uploadTime.hour}시 {uploadTime.minute}분
+              </span>
+            </div>
+
+            <img
+              src={arrowup}
+              alt="시간 선택"
+              className="h-[24px] w-[24px] rotate-180"
+            />
+          </button>
+
+          <div className="mt-[32px]">
+            <AuthButton
+              isActive={isAddScheduleActive}
+              onClick={handleAddSchedules}
+            >
+              추가하기
+            </AuthButton>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+
+  return (
+    <div className="relative flex h-[100dvh] flex-col overflow-hidden bg-[#F3F4F6]">
+      <MakeHeader
+        title="홍보 스케줄링 수정"
+        onBack={() => navigate("/product")}
+      />
+
+      {renderEditContent()}
+
+      {isHashTagModalOpen && (
+        <HashTagModal
+          tags={hashTags}
+          onRemove={handleRemoveHashTag}
+          onClose={() => setIsHashTagModalOpen(false)}
+          onAdd={handleAddHashTag}
+        />
+      )}
+
+      {isDeleteModalOpen && (
+        <div
+          className="absolute inset-0 z-50 flex items-end bg-black/56"
+          onClick={() => setIsDeleteModalOpen(false)}
+        >
+          <div
+            className="h-[275px] w-full rounded-t-[15px] bg-white px-[16px] py-[24px]"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="flex h-full flex-col items-center">
+              <img
+                className="h-[50px] w-[50px]"
+                src={warningImage}
+                alt="경고"
+              />
+              <span className="mt-[24px] text-center text-[24px] font-bold leading-[34px] text-black">
+                삭제하면 되돌릴 수 없어요!
+              </span>
+              <span className="mt-[4px] text-center text-[14px] font-normal leading-[21px] text-[#7E858C]">
+                정말 삭제 하시겠어요?
+              </span>
+              <button
+                type="button"
+                onClick={() => navigate("/product")}
+                className="mt-[24px] flex h-[67px] w-full items-center justify-center rounded-[15px] bg-[#FFE8ED] px-[55px] py-[8px] text-[18px] font-normal leading-[32px] text-[#DF0024]"
+              >
+                삭제하기
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {isScheduleModalOpen && renderScheduleForm()}
+
+      <TimeModal
+        isOpen={isTimeModalOpen}
+        onClose={() => setIsTimeModalOpen(false)}
+        onConfirm={(hour, minute) => {
+          setUploadTime({
+            hour,
+            minute,
+          });
+        }}
+      />
     </div>
   );
 };

@@ -42,5 +42,12 @@ export default defineConfig({
     port: 5173,
     strictPort: true,
     open: true,
+    proxy: {
+      "/api": {
+        target: "https://spring.allligo-agent.cloud",
+        changeOrigin: true,
+        secure: true,
+      },
+    },
   },
 });
