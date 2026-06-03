@@ -17,7 +17,7 @@ export const setAuthToken = (token) => {
 };
 
 const api = axios.create({
-  baseURL: import.meta.env.DEV ? "" : "https://spring.allligo-agent.cloud",
+  baseURL: import.meta.env.DEV ? "" : "http://spring.allligo-agent.cloud",
   
 
   headers: {
