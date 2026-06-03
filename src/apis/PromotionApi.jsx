@@ -32,6 +32,12 @@ export const getMyPromotions = async () => {
   return response.data
 }
 
+export const getPromotionScheduleQueue = async () => {
+  const response = await api.get('/api/v1/promotions/schedules/queue')
+
+  return response.data
+}
+
 export const getPromotionDetail = async (promotionId) => {
   const response = await api.get(`/api/v1/promotions/${promotionId}`)
 
