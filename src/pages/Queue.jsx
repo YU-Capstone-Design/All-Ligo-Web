@@ -1,3 +1,4 @@
+import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { IoChevronForward } from "react-icons/io5";
 import BottomNavigation from "../components/BottomNavigation";
@@ -7,29 +8,7 @@ import todayStatusIcon from "../assets/queue/check.png";
 import statusCompleteIcon from "../assets/queue/finish.png";
 import statusProgressIcon from "../assets/queue/ing.png";
 import statusWaitingIcon from "../assets/queue/wait.png";
-
-const queueItems = [
-  { id: 1, status: "생성 완료", type: "영상", tone: "ready" },
-  { id: 2, status: "생성 완료", type: "영상", tone: "ready" },
-  { id: 3, status: "생성 완료", type: "영상", tone: "ready" },
-  { id: 4, status: "생성중", type: "텍스트", tone: "progress" },
-  { id: 5, status: "대기중", type: "텍스트", tone: "waiting" },
-  { id: 6, status: "대기중", type: "텍스트", tone: "waiting" },
-  { id: 7, status: "대기중", type: "텍스트", tone: "waiting" },
-];
-
-const getQueueItemTitle = (id) => {
-  const savedTitle = localStorage.getItem(`queueItem:${id}:title`);
-  return savedTitle || "게시글 제목";
-};
-
-const getDeletedQueueItemIds = () => {
-  try {
-    return JSON.parse(localStorage.getItem("deletedQueueItemIds") || "[]");
-  } catch {
-    return [];
-  }
-};
+import { getPromotionScheduleQueue } from "../apis/PromotionApi";
 
 const statusStyles = {
   ready: {
@@ -53,6 +32,13 @@ const statusStyles = {
     title: "text-[#B4BAC0]",
     arrow: "text-[#EDF1F5]",
   },
+  failed: {
+    wrapper: "bg-[#FFE8E8] text-[#ED0404]",
+    icon: statusWaitingIcon,
+    typeBadge: "bg-[#F6F6F8]/60 text-[#9DA4AB]",
+    title: "text-[#B4BAC0]",
+    arrow: "text-[#EDF1F5]",
+  },
 };
 
 const QueueCard = ({ item, onClick }) => {
@@ -62,7 +48,8 @@ const QueueCard = ({ item, onClick }) => {
     <button
       type="button"
       onClick={onClick}
-      className="flex h-[90px] w-full items-center rounded-[18px] bg-white px-[18px] text-left shadow-[0_10px_24px_rgba(30,42,58,0.03)]"
+      disabled={!item.clickable}
+      className="flex h-[90px] w-full items-center rounded-[18px] bg-white px-[18px] text-left shadow-[0_10px_24px_rgba(30,42,58,0.03)] disabled:cursor-default"
     >
       <div className="min-w-0 flex-1">
         <div className="flex items-center gap-[8px]">
@@ -93,24 +80,65 @@ const QueueCard = ({ item, onClick }) => {
   );
 };
 
+const getQueueTone = (status) => {
+  if (status === "SUCCESS") return "ready";
+  if (status === "PROCESSING") return "progress";
+  if (status === "FAILED") return "failed";
+
+  return "waiting";
+};
+
+const toQueueItem = (item) => ({
+  id: item.executionId,
+  promotionId: item.promotionId,
+  contentId: item.contentId,
+  status: item.statusLabel || item.status,
+  statusCode: item.status,
+  type: item.contentTypeLabel || item.contentType,
+  contentType: item.contentType,
+  title: item.promotionTitle || "게시글 제목",
+  tone: getQueueTone(item.status),
+  executedAt: item.executedAt,
+  clickable: !!item.clickable,
+});
+
 const Queue = () => {
   const navigate = useNavigate();
+  const [queueItems, setQueueItems] = useState([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [errorMessage, setErrorMessage] = useState("");
   const todayLabel = new Intl.DateTimeFormat("ko-KR", {
     year: "numeric",
     month: "long",
     day: "numeric",
   }).format(new Date());
-  const deletedItemIds = getDeletedQueueItemIds();
-  const visibleQueueItems = queueItems.filter(
-    (item) => !deletedItemIds.includes(item.id),
-  );
-  const scheduledCount = visibleQueueItems.filter((item) =>
+
+  useEffect(() => {
+    const fetchQueue = async () => {
+      try {
+        setIsLoading(true);
+        setErrorMessage("");
+
+        const response = await getPromotionScheduleQueue();
+        setQueueItems(Array.isArray(response) ? response.map(toQueueItem) : []);
+      } catch (error) {
+        setErrorMessage(
+          error.response?.status === 401
+            ? "로그인이 만료되었어요. 다시 로그인 후 확인해주세요."
+            : error.response?.data?.message ||
+                "스케줄링 대기열을 불러오지 못했어요.",
+        );
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    fetchQueue();
+  }, []);
+
+  const scheduledCount = queueItems.filter((item) =>
     ["progress", "waiting"].includes(item.tone),
   ).length;
-  const hydratedQueueItems = visibleQueueItems.map((item) => ({
-    ...item,
-    title: getQueueItemTitle(item.id),
-  }));
 
   return (
     <div className="no-scrollbar h-[100dvh] overflow-y-auto bg-[#F5F6F8] px-[16px] pb-[128px] pt-[18px]">
@@ -153,15 +181,39 @@ const Queue = () => {
         </section>
 
         <section className="mt-[22px] space-y-[12px]">
-          {hydratedQueueItems.map((item) => (
+          {isLoading && (
+            <p className="rounded-[18px] bg-white px-[18px] py-[20px] text-[15px] font-medium text-[#7e858c]">
+              스케줄링 대기열을 불러오는 중이에요.
+            </p>
+          )}
+
+          {!isLoading && errorMessage && (
+            <p className="rounded-[18px] bg-white px-[18px] py-[20px] text-[15px] font-medium leading-[22px] text-[#ED0404]">
+              {errorMessage}
+            </p>
+          )}
+
+          {!isLoading && !errorMessage && queueItems.length === 0 && (
+            <p className="rounded-[18px] bg-white px-[18px] py-[20px] text-[15px] font-medium leading-[22px] text-[#7e858c]">
+              24시간 이내 스케줄링 대기열이 없어요.
+            </p>
+          )}
+
+          {!isLoading && !errorMessage && queueItems.map((item) => (
             <QueueCard
               key={item.id}
               item={item}
-              onClick={() =>
-                navigate(`/clear/${item.id}`, {
-                  state: { contentType: item.type },
-                })
-              }
+              onClick={() => {
+                if (!item.clickable) return;
+
+                navigate(`/clear/${item.contentId || item.id}`, {
+                  state: {
+                    contentType: item.contentType,
+                    title: item.title,
+                    createdAt: item.executedAt,
+                  },
+                });
+              }}
             />
           ))}
         </section>

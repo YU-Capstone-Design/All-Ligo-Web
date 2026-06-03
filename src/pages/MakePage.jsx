@@ -32,7 +32,7 @@ const dayIndexMap = {
 }
 
 const contentTypeMap = {
-  blog: 'BLOG',
+  blog: 'POST',
   shorts: 'VIDEO',
 }
 

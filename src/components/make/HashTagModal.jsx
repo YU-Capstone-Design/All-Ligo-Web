@@ -9,6 +9,7 @@ const HashTagModal = ({ onClose, onAdd, tags = [], onRemove }) => {
 
     onAdd(hashTagInput.trim())
     setHashTagInput('')
+    onClose()
   }
 
   return (
