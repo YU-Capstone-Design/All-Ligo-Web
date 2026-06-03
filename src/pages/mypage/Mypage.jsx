@@ -1,8 +1,10 @@
-import { useState } from "react";
+import { useContext, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import BottomNavigation from "../../components/BottomNavigation";
+import AuthContext from "../../contexts/AuthContext";
 
 import { CiCirclePlus } from "react-icons/ci";
+import { MdOutlineLogout } from "react-icons/md";
 import { HiOutlineDotsHorizontal } from "react-icons/hi";
 import { PiNotePencil } from "react-icons/pi";
 import { FiTrash2 } from "react-icons/fi";
@@ -21,18 +23,47 @@ const CouponImage = () => (
 
 const MyPage = () => {
   const navigate = useNavigate();
+  const { logout } = useContext(AuthContext);
   const [activeMenuId, setActiveMenuId] = useState(null);
+  const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const [couponList, setCouponList] = useState([
     { id: 1, title: "돼지 국밥 오픈 할인", discount: "20%" },
     { id: 2, title: "돼지 국밥 오픈 할인", discount: "20%" },
     { id: 3, title: "돼지 국밥 오픈 할인", discount: "20%" },
   ]);
 
+  const storeAddress = useMemo(() => {
+    const savedLocation = localStorage.getItem("mypageStoreLocation");
+    const savedDetail = localStorage.getItem("mypageStoreLocationDetail");
+
+    if (savedLocation) {
+      return savedDetail ? `${savedLocation} ${savedDetail}` : savedLocation;
+    }
+
+    try {
+      const signupDraft =
+        JSON.parse(sessionStorage.getItem("ownerSignupDraft")) || {};
+      return (
+        signupDraft.address ||
+        signupDraft.locationText ||
+        "경북 경산시 대학로 280"
+      );
+    } catch {
+      return "경북 경산시 대학로 280";
+    }
+  }, []);
+
   const handleDelete = (id) => {
     if (window.confirm("정말 이 쿠폰을 삭제하시겠습니까?")) {
       setCouponList(couponList.filter((coupon) => coupon.id !== id));
       setActiveMenuId(null);
     }
+  };
+
+  const handleLogout = () => {
+    logout();
+    setIsSettingsOpen(false);
+    navigate("/owner-login");
   };
 
   return (
@@ -43,21 +74,49 @@ const MyPage = () => {
           alt="앱 이름"
           className="w-[100px] h-[32px] object-contain -translate-y-[2px]"
         />
-        <div className="flex items-center gap-[16px] text-[#CAD0D6]">
-          <button type="button" aria-label="알림" className="text-[24px]">
+        <div className="relative flex items-center gap-[16px] text-[#CAD0D6]">
+          <button
+            type="button"
+            onClick={() => navigate("/notifications")}
+            aria-label="알림"
+            className="text-[24px]"
+          >
             <img
               src={bell}
               alt="종 아이콘"
               className="w-[32px] h-[32px] object-contain -translate-y-[2px]"
             />
           </button>
-          <button type="button" aria-label="설정" className="text-[24px]">
+          <button
+            type="button"
+            onClick={() => setIsSettingsOpen((isOpen) => !isOpen)}
+            aria-label="설정"
+            className="text-[24px]"
+          >
             <img
               src={setup}
               alt="설정 아이콘"
               className="w-[32px] h-[32px] object-contain -translate-y-[2px]"
             />
           </button>
+          {isSettingsOpen && (
+            <div
+              className="absolute right-0 top-[38px] z-30 flex h-[50px] w-[190px] items-center rounded-full border border-white/30 bg-white/25 px-[18px] shadow-[0_8px_20px_rgba(23,35,53,0.08)]"
+              style={{
+                WebkitBackdropFilter: "blur(2px)",
+                backdropFilter: "blur(2px)",
+              }}
+            >
+              <button
+                type="button"
+                onClick={handleLogout}
+                className="flex h-full w-full items-center gap-[10px] text-[16px] font-semibold text-[#3A3A3A]"
+              >
+                <MdOutlineLogout className="text-[21px] translate-y-[-2px]" />
+                로그아웃
+              </button>
+            </div>
+          )}
         </div>
       </header>
 
@@ -79,8 +138,8 @@ const MyPage = () => {
         <h2 className="mt-[12px] text-[22px] font-bold text-[#000000]">
           홍길동
         </h2>
-        <p className="mt-[2px] text-[14px] font-medium text-[#7E858C]">
-          #닉네임1234
+        <p className="mt-[2px] max-w-full truncate text-[14px] font-medium text-[#7E858C]">
+          {storeAddress}
         </p>
       </section>
 
@@ -142,10 +201,10 @@ const MyPage = () => {
 
               {activeMenuId === coupon.id && (
                 <div
-                  className="absolute right-0 top-[30px] z-20 w-[230px] overflow-hidden rounded-[20px] bg-white/90 py-[8px] shadow-[0_10px_30px_rgba(0,0,0,0.08)] border border-white/40"
+                  className="absolute right-0 top-[30px] z-20 w-[230px] overflow-hidden rounded-[20px] border border-white/30 bg-white/25 py-[8px] shadow-[0_8px_20px_rgba(23,35,53,0.08)]"
                   style={{
-                    WebkitBackdropFilter: "blur(40px)",
-                    backdropFilter: "blur(1px)",
+                    WebkitBackdropFilter: "blur(2px)",
+                    backdropFilter: "blur(2px)",
                   }}
                 >
                   <button

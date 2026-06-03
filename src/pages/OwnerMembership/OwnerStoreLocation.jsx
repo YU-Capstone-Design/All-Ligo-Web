@@ -90,7 +90,11 @@ const OwnerStoreLocation = () => {
   const handleNext = () => {
     if (!hasLocation || !selectedCoords) return;
 
-    updateOwnerSignupDraft(selectedCoords);
+    updateOwnerSignupDraft({
+      ...selectedCoords,
+      address: locationText.trim(),
+      locationText: locationText.trim(),
+    });
     navigate("/owner-password");
   };
 
