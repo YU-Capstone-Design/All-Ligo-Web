@@ -25,3 +25,24 @@ export const createPromotion = async (promotionForm) => {
 
   return response.data
 }
+
+export const getMyPromotions = async () => {
+  const response = await api.get('/api/v1/promotions/me')
+
+  return response.data
+}
+
+export const getPromotionDetail = async (promotionId) => {
+  const response = await api.get(`/api/v1/promotions/${promotionId}`)
+
+  return response.data
+}
+
+export const updatePromotion = async ({ promotionId, promotionForm }) => {
+  const response = await api.put(
+    `/api/v1/promotions/${promotionId}`,
+    promotionForm,
+  )
+
+  return response.data
+}

@@ -1,13 +1,21 @@
 import arrowup from "../../assets/arrow-up.svg";
 
-const ProductCard = ({ weekday, title, date, onClick }) => {
+const ProductCard = ({ thumbnailImageUrl, weekday, title, date, onClick }) => {
   return (
     <button
       type="button"
       onClick={onClick}
       className="flex p-[12px] w-full items-center rounded-[22px] bg-white px-[14px] text-left"
     >
-      <div className="h-[76px] w-[76px] shrink-0 rounded-[5px] bg-[#E7F3FF]" />
+      <div className="h-[76px] w-[76px] shrink-0 overflow-hidden rounded-[5px] bg-[#E7F3FF]">
+        {thumbnailImageUrl && (
+          <img
+            className="h-full w-full object-cover"
+            src={thumbnailImageUrl}
+            alt=""
+          />
+        )}
+      </div>
 
       <div className="ml-[12px] flex min-w-0 flex-1 flex-col">
         <span className="text-[15px] font-normal leading-[14px] text-[#3182f6]">
