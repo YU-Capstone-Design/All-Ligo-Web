@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import arrowup from "../assets/arrow-up.svg";
-import { getStoreCoupons } from "../apis/CouponApi";
+import { getStoreCoupons } from "../apis/GuestCouponApi";
 
 const fallbackCoupons = Array.from({ length: 8 }, (_, index) => ({
   id: index + 1,

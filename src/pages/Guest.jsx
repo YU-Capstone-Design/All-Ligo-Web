@@ -7,7 +7,7 @@ import fireIcon from "../assets/fire.svg";
 import {
   getNearbyCouponStores,
   getRegionCouponStores,
-} from "../apis/CouponApi";
+} from "../apis/GuestCouponApi";
 
 const categories = [
   "전체",
