@@ -127,10 +127,12 @@ const Guest = () => {
   const [selectedCategory, setSelectedCategory] = useState("전체");
   const [isCategoryOpen, setIsCategoryOpen] = useState(false);
   const [currentLocation, setCurrentLocation] = useState(null);
-  const [stores, setStores] = useState(fallbackStores);
+  const [stores, setStores] = useState([]);
   const [isLoading, setIsLoading] = useState(false);
   const [errorMessage, setErrorMessage] = useState("");
   const [isLocationPromptOpen, setIsLocationPromptOpen] = useState(false);
+  const [locationPermissionState, setLocationPermissionState] =
+    useState("prompt");
 
   const loadNearbyStores = useCallback(async (location) => {
     setIsLoading(true);
@@ -155,11 +157,12 @@ const Guest = () => {
   }, []);
 
   const handleLocationPermissionClick = useCallback(() => {
-    setIsLocationPromptOpen(false);
+    setErrorMessage("");
 
     if (!navigator.geolocation) {
-      setErrorMessage("현재 위치를 확인할 수 없어 기본 매장을 보여드려요.");
-      setStores(fallbackStores);
+      setLocationPermissionState("unsupported");
+      setIsLocationPromptOpen(true);
+      setStores([]);
       return;
     }
 
@@ -171,11 +174,21 @@ const Guest = () => {
         };
 
         setCurrentLocation(location);
+        setIsLocationPromptOpen(false);
         loadNearbyStores(location);
       },
-      () => {
-        setErrorMessage("위치 권한이 없어 기본 매장을 보여드려요.");
-        setStores(fallbackStores);
+      (error) => {
+        if (error.code === error.PERMISSION_DENIED) {
+          setLocationPermissionState("denied");
+          setIsLocationPromptOpen(true);
+          setStores([]);
+          setIsLoading(false);
+          return;
+        }
+
+        setLocationPermissionState("prompt");
+        setIsLocationPromptOpen(true);
+        setStores([]);
         setIsLoading(false);
       },
     );
@@ -184,6 +197,7 @@ const Guest = () => {
   useEffect(() => {
     const checkLocationPermission = async () => {
       if (!navigator.geolocation) {
+        setLocationPermissionState("unsupported");
         setIsLocationPromptOpen(true);
         return;
       }
@@ -203,8 +217,10 @@ const Guest = () => {
           return;
         }
 
+        setLocationPermissionState(permission.state);
         setIsLocationPromptOpen(true);
       } catch {
+        setLocationPermissionState("prompt");
         setIsLocationPromptOpen(true);
       }
     };
@@ -223,7 +239,7 @@ const Guest = () => {
       if (category === "전체") {
         if (!currentLocation) {
           setIsLocationPromptOpen(true);
-          setStores(fallbackStores);
+          setStores([]);
           return;
         }
 
@@ -247,6 +263,26 @@ const Guest = () => {
       setIsLoading(false);
     }
   };
+
+  const locationPromptContent = {
+    prompt: {
+      title: "위치 권한을 설정해주세요",
+      description:
+        "내 주변 3km 안의 할인쿠폰 매장을 가까운 순서대로 보여드릴게요.",
+    },
+    denied: {
+      title: "위치 권한이 필요해요",
+      description:
+        "근처 할인쿠폰 매장을 보려면 위치 권한을 허용해야 해요. 차단된 상태라면 브라우저 또는 휴대폰 설정에서 위치 권한을 허용한 뒤 다시 눌러주세요.",
+    },
+    unsupported: {
+      title: "위치 정보를 사용할 수 없어요",
+      description:
+        "현재 브라우저에서는 위치 권한을 요청할 수 없어요. 위치 권한을 사용할 수 있는 브라우저에서 다시 시도해주세요.",
+    },
+  };
+  const currentLocationPrompt =
+    locationPromptContent[locationPermissionState] || locationPromptContent.prompt;
 
   return (
     <div className="no-scrollbar h-[100dvh] overflow-y-auto bg-[#F6F6F8] px-[20px] pb-[24px] pt-[31px]">
@@ -344,10 +380,10 @@ const Guest = () => {
               />
               <div className="min-w-0">
                 <h2 className="text-[20px] font-bold leading-[24px] tracking-[-0.5px] text-black">
-                  위치 권한을 설정해주세요
+                  {currentLocationPrompt.title}
                 </h2>
                 <p className="mt-[8px] text-[14px] font-normal leading-[20px] tracking-[-0.5px] text-[#62676D]">
-                  내 주변 3km 안의 할인쿠폰 매장을 가까운 순서대로 보여드릴게요.
+                  {currentLocationPrompt.description}
                 </p>
               </div>
             </div>
