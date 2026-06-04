@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom";
 import OwnerSignupHeader from "../../components/auth/OwnerSignupHeader";
 import AuthButton from "../../components/auth/AuthButton";
 import { CiSearch } from "react-icons/ci";
+import { normalizeOwnerSignupRegion } from "../../apis/OwnerSignupApi";
 import { updateOwnerSignupDraft } from "../../utils/ownerSignupDraft";
 import loadKakaoMap from "../../utils/loadKakaoMap";
 
@@ -34,11 +35,11 @@ const OwnerStoreLocation = () => {
     return `${text.slice(0, 19)}...`;
   };
 
-  const setSelectedLocation = useCallback((lat, lng, label) => {
+  const setSelectedLocation = useCallback((lat, lng, label, region = "") => {
     const nextLabel = label || `${lat.toFixed(6)}, ${lng.toFixed(6)}`;
     setLocationText(nextLabel);
     setSearchText(nextLabel);
-    setSelectedCoords({ latitude: lat, longitude: lng });
+    setSelectedCoords({ latitude: lat, longitude: lng, region });
 
     if (!window.kakao?.maps || !mapRef.current || !overlayRef.current) return;
 
@@ -60,12 +61,17 @@ const OwnerStoreLocation = () => {
           return;
         }
 
+        const addressInfo = result[0].address;
+        const roadAddressInfo = result[0].road_address;
         const address =
-          result[0].road_address?.address_name ||
-          result[0].address?.address_name ||
+          roadAddressInfo?.address_name ||
+          addressInfo?.address_name ||
           `${lat.toFixed(6)}, ${lng.toFixed(6)}`;
+        const region = normalizeOwnerSignupRegion(
+          addressInfo?.region_1depth_name || roadAddressInfo?.region_1depth_name
+        );
 
-        setSelectedLocation(lat, lng, address);
+        setSelectedLocation(lat, lng, address, region);
       });
     },
     [setSelectedLocation]
@@ -80,15 +86,15 @@ const OwnerStoreLocation = () => {
         setMapError("검색 결과를 찾지 못했어요.");
         return;
       }
-      const place = result[0];
-      const label =
-        place.road_address_name || place.address_name || place.place_name;
-      setSelectedLocation(Number(place.y), Number(place.x), label);
+      setAddressFromCoords(Number(result[0].y), Number(result[0].x));
     });
   };
 
   const handleNext = () => {
-    if (!hasLocation || !selectedCoords) return;
+    if (!hasLocation || !selectedCoords?.region) {
+      setMapError("지원하는 지역 정보를 찾지 못했어요. 위치를 다시 선택해주세요.");
+      return;
+    }
 
     updateOwnerSignupDraft({
       ...selectedCoords,
