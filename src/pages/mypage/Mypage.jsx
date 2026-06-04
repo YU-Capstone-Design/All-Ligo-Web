@@ -34,10 +34,9 @@ const MyPage = () => {
 
   const storeAddress = useMemo(() => {
     const savedLocation = localStorage.getItem("mypageStoreLocation");
-    const savedDetail = localStorage.getItem("mypageStoreLocationDetail");
 
     if (savedLocation) {
-      return savedDetail ? `${savedLocation} ${savedDetail}` : savedLocation;
+      return savedLocation;
     }
 
     try {
