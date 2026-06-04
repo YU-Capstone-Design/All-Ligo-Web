@@ -57,6 +57,7 @@ const MyPage = () => {
   const { logout } = useContext(AuthContext);
   const [activeMenuId, setActiveMenuId] = useState(null);
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
+
   const [couponList, setCouponList] = useState([]);
   const [isCouponLoading, setIsCouponLoading] = useState(true);
   const [couponError, setCouponError] = useState("");
@@ -66,6 +67,20 @@ const MyPage = () => {
 
   const formatDiscount = (coupon) => {
     const discountNum = Number(coupon.discountNum || 0);
+
+  const [couponList, setCouponList] = useState([
+    { id: 1, title: "돼지 국밥 오픈 할인", discount: "20%" },
+    { id: 2, title: "돼지 국밥 오픈 할인", discount: "20%" },
+    { id: 3, title: "돼지 국밥 오픈 할인", discount: "20%" },
+  ]);
+
+  const storeAddress = useMemo(() => {
+    const savedLocation = localStorage.getItem("mypageStoreLocation");
+
+    if (savedLocation) {
+      return savedLocation;
+    }
+
 
     if (coupon.discountType === "AMOUNT") {
       return `${discountNum.toLocaleString()}원`;

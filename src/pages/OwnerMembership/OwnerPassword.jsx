@@ -45,6 +45,7 @@ const OwnerPassword = () => {
       draft.mapUrl,
       draft.latitude,
       draft.longitude,
+      draft.region,
     ]
 
     if (requiredSignupFields.some((field) => field === undefined || field === null || field === '')) {
@@ -58,6 +59,7 @@ const OwnerPassword = () => {
       mapUrl: draft.mapUrl,
       latitude: draft.latitude,
       longitude: draft.longitude,
+      region: draft.region,
       password,
       passwordConfirm,
     }
