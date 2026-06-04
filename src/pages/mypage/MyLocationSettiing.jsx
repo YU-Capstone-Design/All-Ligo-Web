@@ -8,6 +8,29 @@ import { FiSearch } from "react-icons/fi";
 
 const DEFAULT_CENTER = { lat: 35.8338, lng: 128.7597 };
 
+const getInitialLocation = () => {
+  const savedTitle = localStorage.getItem("mypageStoreLocation");
+  const savedSubtitle = localStorage.getItem("mypageStoreLocationDetail");
+  const savedLatitude = Number(localStorage.getItem("mypageStoreLatitude"));
+  const savedLongitude = Number(localStorage.getItem("mypageStoreLongitude"));
+
+  if (savedTitle && !Number.isNaN(savedLatitude) && !Number.isNaN(savedLongitude)) {
+    return {
+      title: savedTitle,
+      subtitle: savedSubtitle || "",
+      lat: savedLatitude,
+      lng: savedLongitude,
+    };
+  }
+
+  return {
+    title: "경북 경산시 현재 내 위치",
+    subtitle: "경북 경산시 조영동1234-123",
+    lat: DEFAULT_CENTER.lat,
+    lng: DEFAULT_CENTER.lng,
+  };
+};
+
 const MyLocationSetting = () => {
   const navigate = useNavigate();
   const mapNodeRef = useRef(null);
@@ -19,12 +42,7 @@ const MyLocationSetting = () => {
   const [isSearchMode, setIsSearchMode] = useState(false);
   const [searchResults, setSearchResults] = useState([]);
   const [mapError, setMapError] = useState("");
-  const [selected, setSelected] = useState({
-    title: "경북 경산시 현재 내 위치",
-    subtitle: "경북 경산시 조영동1234-123",
-    lat: DEFAULT_CENTER.lat,
-    lng: DEFAULT_CENTER.lng,
-  });
+  const [selected, setSelected] = useState(getInitialLocation);
 
   const setSelectedLocation = useCallback((lat, lng, title, subtitle = "") => {
     const nextTitle = title || `${lat.toFixed(6)}, ${lng.toFixed(6)}`;
@@ -222,18 +240,8 @@ const MyLocationSetting = () => {
           window.setTimeout(() => map.relayout(), 100);
         };
 
-        initMap(DEFAULT_CENTER.lat, DEFAULT_CENTER.lng);
-
-        if (navigator.geolocation) {
-          navigator.geolocation.getCurrentPosition(
-            (position) =>
-              setAddressFromCoords(
-                position.coords.latitude,
-                position.coords.longitude
-              ),
-            () => {}
-          );
-        }
+        const initialLocation = getInitialLocation();
+        initMap(initialLocation.lat, initialLocation.lng);
       })
       .catch((error) => {
         console.error(error);

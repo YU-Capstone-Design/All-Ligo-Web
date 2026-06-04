@@ -1,9 +1,10 @@
-import { useContext, useEffect, useMemo, useState } from "react";
+import { useContext, useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import BottomNavigation from "../../components/BottomNavigation";
 import AuthContext from "../../contexts/AuthContext";
 import { deleteCoupon, getMyCoupons } from "../../apis/CouponApi";
 import { getMyPageInfo } from "../../apis/UserApi";
+import loadKakaoMap from "../../utils/loadKakaoMap";
 
 import { CiCirclePlus } from "react-icons/ci";
 import { MdOutlineLogout } from "react-icons/md";
@@ -31,6 +32,26 @@ const CouponImage = ({ imageUrl }) => (
   </div>
 );
 
+const getSavedStoreAddress = () => {
+  const savedLocation = localStorage.getItem("mypageStoreLocation");
+
+  if (savedLocation) {
+    return savedLocation;
+  }
+
+  try {
+    const signupDraft =
+      JSON.parse(sessionStorage.getItem("ownerSignupDraft")) || {};
+    return (
+      signupDraft.address ||
+      signupDraft.locationText ||
+      "경북 경산시 대학로 280"
+    );
+  } catch {
+    return "경북 경산시 대학로 280";
+  }
+};
+
 const MyPage = () => {
   const navigate = useNavigate();
   const { logout } = useContext(AuthContext);
@@ -41,31 +62,7 @@ const MyPage = () => {
   const [couponError, setCouponError] = useState("");
   const [myPageInfo, setMyPageInfo] = useState(null);
   const [myPageError, setMyPageError] = useState("");
-
-  const storeAddress = useMemo(() => {
-    if (myPageInfo?.mapUrl) {
-      return myPageInfo.mapUrl;
-    }
-
-    const savedLocation = localStorage.getItem("mypageStoreLocation");
-    const savedDetail = localStorage.getItem("mypageStoreLocationDetail");
-
-    if (savedLocation) {
-      return savedDetail ? `${savedLocation} ${savedDetail}` : savedLocation;
-    }
-
-    try {
-      const signupDraft =
-        JSON.parse(sessionStorage.getItem("ownerSignupDraft")) || {};
-      return (
-        signupDraft.address ||
-        signupDraft.locationText ||
-        "경북 경산시 대학로 280"
-      );
-    } catch {
-      return "경북 경산시 대학로 280";
-    }
-  }, [myPageInfo]);
+  const [storeAddress, setStoreAddress] = useState(getSavedStoreAddress);
 
   const formatDiscount = (coupon) => {
     const discountNum = Number(coupon.discountNum || 0);
@@ -109,6 +106,44 @@ const MyPage = () => {
 
         if (isMounted) {
           setMyPageInfo(nextMyPageInfo);
+          if (
+            !localStorage.getItem("mypageStoreLocation") &&
+            nextMyPageInfo.latitude &&
+            nextMyPageInfo.longitude
+          ) {
+            loadKakaoMap()
+              .then(
+                (kakao) =>
+                  new Promise((resolve) => {
+                    const geocoder = new kakao.maps.services.Geocoder();
+                    geocoder.coord2Address(
+                      nextMyPageInfo.longitude,
+                      nextMyPageInfo.latitude,
+                      (result, status) => {
+                        if (
+                          status !== kakao.maps.services.Status.OK ||
+                          !result.length
+                        ) {
+                          resolve("");
+                          return;
+                        }
+
+                        resolve(
+                          result[0].road_address?.address_name ||
+                            result[0].address?.address_name ||
+                            ""
+                        );
+                      }
+                    );
+                  })
+              )
+              .then((address) => {
+                if (!isMounted || !address) return;
+                localStorage.setItem("mypageStoreLocation", address);
+                setStoreAddress(address);
+              })
+              .catch(() => {});
+          }
         }
       } catch (error) {
         if (isMounted) {

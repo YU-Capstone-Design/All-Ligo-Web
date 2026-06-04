@@ -9,10 +9,35 @@ import {
   updateMyProfileImage,
   uploadProfileImageToS3,
 } from "../../apis/UserApi";
+import loadKakaoMap from "../../utils/loadKakaoMap";
 
 import { LuPencil } from "react-icons/lu";
 import { GrLocation } from "react-icons/gr";
 import { FiLink } from "react-icons/fi";
+
+const getSavedStoreLocation = () =>
+  localStorage.getItem("mypageStoreLocation") || "";
+
+const getAddressFromCoords = async (latitude, longitude) => {
+  const kakao = await loadKakaoMap();
+
+  return new Promise((resolve) => {
+    const geocoder = new kakao.maps.services.Geocoder();
+
+    geocoder.coord2Address(longitude, latitude, (result, status) => {
+      if (status !== kakao.maps.services.Status.OK || !result.length) {
+        resolve("");
+        return;
+      }
+
+      resolve(
+        result[0].road_address?.address_name ||
+          result[0].address?.address_name ||
+          ""
+      );
+    });
+  });
+};
 
 const ProfileEdit = () => {
   const navigate = useNavigate();
@@ -23,7 +48,7 @@ const ProfileEdit = () => {
   const [profileImageFile, setProfileImageFile] = useState(null);
   const [storeName, setStoreName] = useState("");
   const [storeLink, setStoreLink] = useState("");
-  const [storeLocation, setStoreLocation] = useState("");
+  const [storeLocation, setStoreLocation] = useState(getSavedStoreLocation);
   const [detailAddress, setDetailAddress] = useState("");
   const [latitude, setLatitude] = useState(null);
   const [longitude, setLongitude] = useState(null);
@@ -45,6 +70,24 @@ const ProfileEdit = () => {
         setStoreLink(myPageInfo.mapUrl || "");
         setLatitude(myPageInfo.latitude ?? null);
         setLongitude(myPageInfo.longitude ?? null);
+
+        const savedLocation = getSavedStoreLocation();
+        if (savedLocation) {
+          setStoreLocation(savedLocation);
+          return;
+        }
+
+        if (myPageInfo.latitude && myPageInfo.longitude) {
+          const address = await getAddressFromCoords(
+            myPageInfo.latitude,
+            myPageInfo.longitude
+          );
+
+          if (!isMounted || !address) return;
+
+          localStorage.setItem("mypageStoreLocation", address);
+          setStoreLocation(address);
+        }
       } catch (error) {
         if (isMounted) {
           setFormError(
@@ -65,6 +108,7 @@ const ProfileEdit = () => {
       if (parsed.longitude) setLongitude(parsed.longitude);
       if (parsed.storeName) setStoreName(parsed.storeName);
       if (parsed.storeLink) setStoreLink(parsed.storeLink);
+      if (parsed.storeLocation) setStoreLocation(parsed.storeLocation);
       if (parsed.detailAddress) setDetailAddress(parsed.detailAddress);
       sessionStorage.removeItem("profileEditFormTemp");
     }
@@ -100,6 +144,7 @@ const ProfileEdit = () => {
       longitude,
       storeName,
       storeLink,
+      storeLocation,
       detailAddress,
     };
     sessionStorage.setItem("profileEditFormTemp", JSON.stringify(currentForm));
