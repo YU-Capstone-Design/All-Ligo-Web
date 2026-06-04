@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { IoChevronDown } from "react-icons/io5";
 import locationIcon from "../assets/location.svg";
@@ -132,7 +132,7 @@ const Guest = () => {
   const [errorMessage, setErrorMessage] = useState("");
   const [isLocationPromptOpen, setIsLocationPromptOpen] = useState(false);
 
-  const loadNearbyStores = async (location) => {
+  const loadNearbyStores = useCallback(async (location) => {
     setIsLoading(true);
     setErrorMessage("");
 
@@ -152,9 +152,9 @@ const Guest = () => {
     } finally {
       setIsLoading(false);
     }
-  };
+  }, []);
 
-  const handleLocationPermissionClick = () => {
+  const handleLocationPermissionClick = useCallback(() => {
     setIsLocationPromptOpen(false);
 
     if (!navigator.geolocation) {
@@ -179,7 +179,7 @@ const Guest = () => {
         setIsLoading(false);
       },
     );
-  };
+  }, [loadNearbyStores]);
 
   useEffect(() => {
     const checkLocationPermission = async () => {
@@ -210,7 +210,7 @@ const Guest = () => {
     };
 
     checkLocationPermission();
-  }, []);
+  }, [handleLocationPermissionClick]);
 
   const handleCategoryClick = async (category) => {
     setSelectedCategory(category);
