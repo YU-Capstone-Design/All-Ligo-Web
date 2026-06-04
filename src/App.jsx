@@ -18,6 +18,8 @@ import ProductEdit from "./pages/ProductEdit";
 import ClearPage from "./pages/ClearPage";
 import Queue from "./pages/Queue";
 import Notifications from "./pages/Notifications";
+import Guest from "./pages/Guest";
+import GuestCouponList from "./pages/GuestCouponList";
 
 import MyPage from "./pages/mypage/Mypage";
 import CouponRegistration from "./pages/mypage/CouponRegistration";
@@ -49,6 +51,8 @@ const App = () => {
           <Route path="/product" element={<Product />} />
           <Route path="/queue" element={<Queue />} />
           <Route path="/notifications" element={<Notifications />} />
+          <Route path="/guest" element={<Guest />} />
+          <Route path="/guest/coupons" element={<GuestCouponList />} />
           <Route path="/product/:productId/edit" element={<ProductEdit />} />
           <Route path="/clear/:productId" element={<ClearPage />} />
           <Route path="/makecomplete" element={<MakeComplete />} />
