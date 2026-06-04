@@ -12,7 +12,7 @@ const Splash = () => {
 
   const handleStart = () => {
     if (selectedUserType === 'owner') {
-      navigate('/login')
+      navigate('/owner-login')
     }
   }
 

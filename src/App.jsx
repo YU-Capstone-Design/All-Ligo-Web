@@ -41,7 +41,6 @@ const App = () => {
             path="/owner-store-location"
             element={<OwnerStoreLocation />}
           />
-          <Route path="/login" element={<OwnerLogin />} />
           <Route path="/owner-password" element={<OwnerPassword />} />
           <Route path="/success-page" element={<SuccessPage />} />
 
