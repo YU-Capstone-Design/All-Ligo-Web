@@ -1,4 +1,4 @@
-import React, { useRef, useState } from 'react'
+import { useRef, useState } from 'react'
 import plusicon from '../../assets/make/plusicon.svg'
 
 const ImgAdd = ({ images, setImages }) => {

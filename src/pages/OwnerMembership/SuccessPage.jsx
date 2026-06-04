@@ -1,4 +1,3 @@
-import React from 'react'
 import OwnerLoginHeader from '../../components/auth/OwnerLoginHeader'
 import checkmark from '../../assets/auth/checkmark.svg'
 import AuthButton from '../../components/auth/AuthButton'

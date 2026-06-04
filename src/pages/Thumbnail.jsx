@@ -1,4 +1,3 @@
-import React from 'react'
 import { useNavigate } from 'react-router-dom'
 import AuthButton from '../components/auth/AuthButton'
 import ligoicon from '../assets/ligoicon.svg'

@@ -1,4 +1,4 @@
-import React, { useState } from 'react'
+import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import colorpeople from '../assets/auth/colorpeople.svg'
 import buildingstore from '../assets/auth/buildingstore.svg'

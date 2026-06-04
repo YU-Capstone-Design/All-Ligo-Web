@@ -1,4 +1,3 @@
-import React from 'react'
 import { useNavigate } from 'react-router-dom'
 import clockwise from '../assets/make/clockwise.svg'
 import AuthButton from '../components/auth/AuthButton'

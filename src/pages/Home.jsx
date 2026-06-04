@@ -1,6 +1,4 @@
 import { useNavigate } from "react-router-dom";
-import { HiSparkles } from "react-icons/hi2";
-import { IoNotifications } from "react-icons/io5";
 import BottomNavigation from "../components/BottomNavigation";
 import HourlyClickChart from "../components/home/HourlyClickChart";
 import WeekdayClickChart from "../components/home/WeekdayClickChart";

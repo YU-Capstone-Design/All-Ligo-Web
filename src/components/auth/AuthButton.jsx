@@ -1,5 +1,3 @@
-import React from "react";
-
 const AuthButton = ({ isActive, onClick, children = "시작하기" }) => {
   return (
     <button

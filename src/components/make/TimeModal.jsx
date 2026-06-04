@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useRef, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import AuthButton from '../auth/AuthButton'
 
 const ITEM_HEIGHT = 36
@@ -43,12 +43,12 @@ const TimeModal = ({ isOpen, onClose, onConfirm }) => {
     return MIDDLE_LOOP_INDEX * list.length + valueIndex
   }
 
-  const scrollToValue = (ref, list, value) => {
+  const scrollToValue = useCallback((ref, list, value) => {
     if (!ref.current) return
 
     const targetIndex = getMiddleIndexByValue(list, value)
     ref.current.scrollTop = targetIndex * ITEM_HEIGHT
-  }
+  }, [])
 
   const normalizeIndex = (index, length) => {
     return ((index % length) + length) % length
@@ -89,7 +89,7 @@ const TimeModal = ({ isOpen, onClose, onConfirm }) => {
       scrollToValue(hourRef, hours, selectedHour)
       scrollToValue(minuteRef, minutes, selectedMinute)
     }, 0)
-  }, [isOpen, hours, minutes, selectedHour, selectedMinute])
+  }, [isOpen, hours, minutes, selectedHour, selectedMinute, scrollToValue])
 
   if (!isOpen) return null
 

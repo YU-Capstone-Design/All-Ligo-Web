@@ -18,6 +18,22 @@ import { FiLink } from "react-icons/fi";
 const getSavedStoreLocation = () =>
   localStorage.getItem("mypageStoreLocation") || "";
 
+const getProfileEditFormTemp = () => {
+  try {
+    return JSON.parse(sessionStorage.getItem("profileEditFormTemp")) || {};
+  } catch {
+    return {};
+  }
+};
+
+const getSavedNumber = (key) => {
+  const value = localStorage.getItem(key);
+  if (!value) return null;
+
+  const numberValue = Number(value);
+  return Number.isNaN(numberValue) ? null : numberValue;
+};
+
 const getAddressFromCoords = async (latitude, longitude) => {
   const kakao = await loadKakaoMap();
 
@@ -43,21 +59,52 @@ const ProfileEdit = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const fileInputRef = useRef(null);
+  const [initialSavedForm] = useState(getProfileEditFormTemp);
+  const [initialReturningFromMap] = useState(
+    () => sessionStorage.getItem("returningFromMap") === "true"
+  );
 
-  const [profileImage, setProfileImage] = useState(null);
+  const [profileImage, setProfileImage] = useState(
+    () => initialSavedForm.profileImage || null
+  );
   const [profileImageFile, setProfileImageFile] = useState(null);
-  const [storeName, setStoreName] = useState("");
-  const [storeLink, setStoreLink] = useState("");
-  const [storeLocation, setStoreLocation] = useState(getSavedStoreLocation);
-  const [detailAddress, setDetailAddress] = useState("");
-  const [latitude, setLatitude] = useState(null);
-  const [longitude, setLongitude] = useState(null);
+  const [storeName, setStoreName] = useState(
+    () => initialSavedForm.storeName || ""
+  );
+  const [storeLink, setStoreLink] = useState(
+    () => initialSavedForm.storeLink || ""
+  );
+  const [storeLocation, setStoreLocation] = useState(
+    () =>
+      location.state?.selectedLocation ||
+      initialSavedForm.storeLocation ||
+      (initialReturningFromMap
+        ? localStorage.getItem("mypageStoreLocation") || ""
+        : getSavedStoreLocation())
+  );
+  const [detailAddress, setDetailAddress] = useState(
+    () => initialSavedForm.detailAddress || ""
+  );
+  const [latitude, setLatitude] = useState(
+    () =>
+      initialSavedForm.latitude ??
+      (initialReturningFromMap ? getSavedNumber("mypageStoreLatitude") : null)
+  );
+  const [longitude, setLongitude] = useState(
+    () =>
+      initialSavedForm.longitude ??
+      (initialReturningFromMap ? getSavedNumber("mypageStoreLongitude") : null)
+  );
   const [isLinkInvalid, setIsLinkInvalid] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [formError, setFormError] = useState("");
 
   useEffect(() => {
     let isMounted = true;
+    const hasRestoredForm =
+      Object.keys(initialSavedForm).length > 0 ||
+      Boolean(location.state?.selectedLocation) ||
+      initialReturningFromMap;
 
     const loadMyPageInfo = async () => {
       try {
@@ -65,19 +112,23 @@ const ProfileEdit = () => {
 
         if (!isMounted) return;
 
-        setProfileImage(myPageInfo.profileImageUrl || null);
-        setStoreName(myPageInfo.storeName || "");
-        setStoreLink(myPageInfo.mapUrl || "");
-        setLatitude(myPageInfo.latitude ?? null);
-        setLongitude(myPageInfo.longitude ?? null);
+        if (!hasRestoredForm) {
+          setProfileImage(myPageInfo.profileImageUrl || null);
+          setStoreName(myPageInfo.storeName || "");
+          setStoreLink(myPageInfo.mapUrl || "");
+          setLatitude(myPageInfo.latitude ?? null);
+          setLongitude(myPageInfo.longitude ?? null);
+        }
 
         const savedLocation = getSavedStoreLocation();
         if (savedLocation) {
-          setStoreLocation(savedLocation);
+          if (!hasRestoredForm) {
+            setStoreLocation(savedLocation);
+          }
           return;
         }
 
-        if (myPageInfo.latitude && myPageInfo.longitude) {
+        if (!hasRestoredForm && myPageInfo.latitude && myPageInfo.longitude) {
           const address = await getAddressFromCoords(
             myPageInfo.latitude,
             myPageInfo.longitude
@@ -100,42 +151,15 @@ const ProfileEdit = () => {
 
     loadMyPageInfo();
 
-    const savedForm = sessionStorage.getItem("profileEditFormTemp");
-    if (savedForm) {
-      const parsed = JSON.parse(savedForm);
-      if (parsed.profileImage) setProfileImage(parsed.profileImage);
-      if (parsed.latitude) setLatitude(parsed.latitude);
-      if (parsed.longitude) setLongitude(parsed.longitude);
-      if (parsed.storeName) setStoreName(parsed.storeName);
-      if (parsed.storeLink) setStoreLink(parsed.storeLink);
-      if (parsed.storeLocation) setStoreLocation(parsed.storeLocation);
-      if (parsed.detailAddress) setDetailAddress(parsed.detailAddress);
-      sessionStorage.removeItem("profileEditFormTemp");
-    }
-
-    if (location.state?.selectedLocation) {
-      setStoreLocation(location.state.selectedLocation);
-      sessionStorage.removeItem("returningFromMap");
-      return;
-    }
-
-    const isReturningFromMap = sessionStorage.getItem("returningFromMap");
-    if (isReturningFromMap === "true") {
-      const savedLocation = localStorage.getItem("mypageStoreLocation");
-      const savedLatitude = localStorage.getItem("mypageStoreLatitude");
-      const savedLongitude = localStorage.getItem("mypageStoreLongitude");
-      if (savedLocation) {
-        setStoreLocation(savedLocation);
-      }
-      if (savedLatitude) setLatitude(Number(savedLatitude));
-      if (savedLongitude) setLongitude(Number(savedLongitude));
-      sessionStorage.removeItem("returningFromMap");
-    }
-
     return () => {
       isMounted = false;
     };
-  }, [location]);
+  }, [initialReturningFromMap, initialSavedForm, location.state?.selectedLocation]);
+
+  useEffect(() => {
+    sessionStorage.removeItem("profileEditFormTemp");
+    sessionStorage.removeItem("returningFromMap");
+  }, []);
 
   const handleLocationClick = () => {
     const currentForm = {
