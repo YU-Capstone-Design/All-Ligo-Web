@@ -11,8 +11,12 @@ const Splash = () => {
   const textstyle = "text-[20px] leading-[36px] font-semibold text-center"
 
   const handleStart = () => {
+    if (selectedUserType === 'user') {
+      navigate('/guest')
+    }
+
     if (selectedUserType === 'owner') {
-      navigate('/login')
+      navigate('/owner-login')
     }
   }
 
