@@ -68,6 +68,18 @@ const OwnerPassword = () => {
       setIsSigningUp(true)
       setSignupError('')
       await signupOwner(signupForm)
+      if (draft.address || draft.locationText) {
+        localStorage.setItem(
+          'mypageStoreLocation',
+          draft.address || draft.locationText,
+        )
+      }
+      if (draft.latitude) {
+        localStorage.setItem('mypageStoreLatitude', String(draft.latitude))
+      }
+      if (draft.longitude) {
+        localStorage.setItem('mypageStoreLongitude', String(draft.longitude))
+      }
       clearOwnerSignupDraft()
       navigate('/success-page')
     } catch (error) {
