@@ -127,47 +127,51 @@ const Guest = () => {
   const [selectedCategory, setSelectedCategory] = useState("전체");
   const [isCategoryOpen, setIsCategoryOpen] = useState(false);
   const [currentLocation, setCurrentLocation] = useState(null);
-  const [stores, setStores] = useState([]);
-  const [isLoading, setIsLoading] = useState(true);
+  const [stores, setStores] = useState(fallbackStores);
+  const [isLoading, setIsLoading] = useState(false);
   const [errorMessage, setErrorMessage] = useState("");
+  const [isLocationPromptOpen, setIsLocationPromptOpen] = useState(false);
 
-  useEffect(() => {
+  const loadNearbyStores = async (location) => {
+    setIsLoading(true);
+    setErrorMessage("");
+
+    try {
+      const response = await getNearbyCouponStores(location);
+      setStores(
+        Array.isArray(response)
+          ? response.map((store) => toStoreItem(store, location))
+          : [],
+      );
+    } catch (error) {
+      setErrorMessage(
+        error.response?.data?.message ||
+          "근처 할인쿠폰 매장을 불러오지 못했어요.",
+      );
+      setStores(fallbackStores);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleLocationPermissionClick = () => {
+    setIsLocationPromptOpen(false);
+
     if (!navigator.geolocation) {
-      window.setTimeout(() => {
-        setErrorMessage("현재 위치를 확인할 수 없어 기본 매장을 보여드려요.");
-        setStores(fallbackStores);
-        setIsLoading(false);
-      }, 0);
+      setErrorMessage("현재 위치를 확인할 수 없어 기본 매장을 보여드려요.");
+      setStores(fallbackStores);
       return;
     }
 
     navigator.geolocation.getCurrentPosition(
-      async (position) => {
+      (position) => {
         const location = {
           latitude: position.coords.latitude,
           longitude: position.coords.longitude,
         };
 
-        try {
-          setIsLoading(true);
-          setErrorMessage("");
-          setCurrentLocation(location);
-
-          const response = await getNearbyCouponStores(location);
-          setStores(
-            Array.isArray(response)
-              ? response.map((store) => toStoreItem(store, location))
-              : [],
-          );
-        } catch (error) {
-          setErrorMessage(
-            error.response?.data?.message ||
-              "근처 할인쿠폰 매장을 불러오지 못했어요.",
-          );
-          setStores(fallbackStores);
-        } finally {
-          setIsLoading(false);
-        }
+        setCurrentLocation(location);
+        loadNearbyStores(location);
       },
       () => {
         setErrorMessage("위치 권한이 없어 기본 매장을 보여드려요.");
@@ -175,6 +179,37 @@ const Guest = () => {
         setIsLoading(false);
       },
     );
+  };
+
+  useEffect(() => {
+    const checkLocationPermission = async () => {
+      if (!navigator.geolocation) {
+        setIsLocationPromptOpen(true);
+        return;
+      }
+
+      if (!navigator.permissions?.query) {
+        setIsLocationPromptOpen(true);
+        return;
+      }
+
+      try {
+        const permission = await navigator.permissions.query({
+          name: "geolocation",
+        });
+
+        if (permission.state === "granted") {
+          handleLocationPermissionClick();
+          return;
+        }
+
+        setIsLocationPromptOpen(true);
+      } catch {
+        setIsLocationPromptOpen(true);
+      }
+    };
+
+    checkLocationPermission();
   }, []);
 
   const handleCategoryClick = async (category) => {
@@ -187,16 +222,12 @@ const Guest = () => {
 
       if (category === "전체") {
         if (!currentLocation) {
+          setIsLocationPromptOpen(true);
           setStores(fallbackStores);
           return;
         }
 
-        const response = await getNearbyCouponStores(currentLocation);
-        setStores(
-          Array.isArray(response)
-            ? response.map((store) => toStoreItem(store, currentLocation))
-            : [],
-        );
+        await loadNearbyStores(currentLocation);
         return;
       }
 
@@ -301,6 +332,38 @@ const Guest = () => {
           />
         ))}
       </main>
+
+      {isLocationPromptOpen && (
+        <div className="absolute inset-0 z-50 flex items-center justify-center bg-black/30 px-[28px]">
+          <section className="w-full rounded-[20px] bg-white px-[20px] py-[22px] shadow-[0_12px_32px_rgba(0,0,0,0.18)]">
+            <div className="flex items-start gap-[12px]">
+              <img
+                className="h-[42px] w-[42px] shrink-0"
+                src={locationIcon}
+                alt=""
+              />
+              <div className="min-w-0">
+                <h2 className="text-[20px] font-bold leading-[24px] tracking-[-0.5px] text-black">
+                  위치 권한을 설정해주세요
+                </h2>
+                <p className="mt-[8px] text-[14px] font-normal leading-[20px] tracking-[-0.5px] text-[#62676D]">
+                  내 주변 3km 안의 할인쿠폰 매장을 가까운 순서대로 보여드릴게요.
+                </p>
+              </div>
+            </div>
+
+            <div className="mt-[22px]">
+              <button
+                type="button"
+                onClick={handleLocationPermissionClick}
+                className="h-[48px] w-full rounded-[12px] bg-[#2880EB] text-[15px] font-semibold text-white"
+              >
+                위치 권한 설정
+              </button>
+            </div>
+          </section>
+        </div>
+      )}
     </div>
   );
 };
