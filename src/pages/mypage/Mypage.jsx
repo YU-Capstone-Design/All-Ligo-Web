@@ -320,18 +320,18 @@ const MyPage = () => {
           {couponList.map((coupon) => (
             <article
               key={coupon.couponId}
-              className="relative flex rounded-[16px] bg-white p-[12px] shadow-[0_8px_20px_rgba(23,35,53,0.08)]"
+              className="relative flex h-[98px] rounded-[16px] bg-white p-[12px] shadow-[0_8px_20px_rgba(23,35,53,0.08)]"
             >
               <CouponImage imageUrl={coupon.imageUrl} />
-              <div className="ml-[14px] min-w-0 flex-1">
+              <div className="ml-[22px] flex h-[74px] min-w-0 flex-1 flex-col justify-between">
                 <h3 className="truncate text-[20px] font-bold text-[#3A3A3A]">
                   {coupon.menuName}
                 </h3>
-                <p className="mt-[3px] flex items-end gap-[2px]">
-                  <span className="text-[40px] leading-[42px] font-bold text-[#3182F6]">
+                <p className="flex items-baseline gap-[4px]">
+                  <span className="text-[34px] leading-[34px] font-bold text-[#3182F6]">
                     {formatDiscount(coupon)}
                   </span>
-                  <span className="pb-[3px] text-[14px] font-semibold text-[#000000]">
+                  <span className="text-[14px] font-semibold leading-[14px] text-[#000000]">
                     할인쿠폰
                   </span>
                 </p>

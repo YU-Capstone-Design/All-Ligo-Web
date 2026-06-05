@@ -60,19 +60,19 @@ const CouponImage = ({ imageUrl }) => (
 );
 
 const CouponCard = ({ coupon }) => (
-  <article className="relative flex w-full items-start overflow-hidden rounded-[20px] bg-white p-[8px] shadow-[0_0_20px_rgba(0,0,0,0.06)]">
-    <div className="flex min-w-0 items-start gap-[28px] pr-[52px]">
+  <article className="relative flex h-[100px] w-full items-start overflow-hidden rounded-[20px] bg-white p-[8px] shadow-[0_0_20px_rgba(0,0,0,0.06)]">
+    <div className="flex min-w-0 items-start gap-[36px] pr-[52px]">
       <CouponImage imageUrl={coupon.imageUrl} />
 
-      <div className="min-w-0 flex-1 pt-[8px]">
+      <div className="flex h-[84px] min-w-0 flex-1 flex-col justify-between">
         <h2 className="truncate text-[20px] font-bold leading-[28px] text-[#3A3A3A]">
           {coupon.title}
         </h2>
-        <div className="mt-[4px] flex min-w-0 items-end whitespace-nowrap">
-          <span className="shrink-0 text-[40px] font-bold leading-[40px] tracking-[-0.5px] text-[#3182F6]">
+        <div className="flex min-w-0 items-baseline gap-[4px] whitespace-nowrap">
+          <span className="shrink-0 text-[34px] font-bold leading-[34px] tracking-[-0.5px] text-[#3182F6]">
             {coupon.discount}
           </span>
-          <span className="mb-[6px] ml-[4px] shrink-0 text-[14px] font-semibold leading-[14px] tracking-[-0.5px] text-black">
+          <span className="shrink-0 text-[14px] font-semibold leading-[14px] tracking-[-0.5px] text-black">
             {coupon.type}
           </span>
         </div>
