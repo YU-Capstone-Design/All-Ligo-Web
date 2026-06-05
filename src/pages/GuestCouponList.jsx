@@ -43,7 +43,7 @@ const GuestCouponHeader = () => {
 };
 
 const CouponImage = ({ imageUrl }) => (
-  <div className="h-[84px] w-[84px] shrink-0 overflow-hidden rounded-[16px] bg-[#c8b29d]">
+  <div className="h-[74px] w-[74px] shrink-0 overflow-hidden rounded-[12px] bg-[#c8b29d]">
     {imageUrl ? (
       <img
         className="h-full w-full object-cover"
@@ -60,11 +60,11 @@ const CouponImage = ({ imageUrl }) => (
 );
 
 const CouponCard = ({ coupon }) => (
-  <article className="relative flex h-[100px] w-full items-start overflow-hidden rounded-[20px] bg-white p-[8px] shadow-[0_0_20px_rgba(0,0,0,0.06)]">
-    <div className="flex min-w-0 items-start gap-[36px] pr-[52px]">
+  <article className="relative flex h-[98px] w-full overflow-hidden rounded-[16px] bg-white p-[12px] shadow-[0_8px_20px_rgba(23,35,53,0.08)]">
+    <div className="flex min-w-0 flex-1 pr-[52px]">
       <CouponImage imageUrl={coupon.imageUrl} />
 
-      <div className="flex h-[84px] min-w-0 flex-1 flex-col justify-between">
+      <div className="ml-[22px] flex h-[74px] min-w-0 flex-1 flex-col justify-between">
         <h2 className="truncate text-[20px] font-bold leading-[28px] text-[#3A3A3A]">
           {coupon.title}
         </h2>
@@ -81,7 +81,7 @@ const CouponCard = ({ coupon }) => (
 
     <button
       type="button"
-      className="absolute right-[28px] top-[22px] flex h-[12px] w-[26px] items-center justify-center gap-[4px]"
+      className="absolute right-[18px] top-[4px] flex h-[22px] w-[26px] items-center justify-center gap-[4px]"
       aria-label="쿠폰 메뉴"
     >
       <span className="h-[2px] w-[2px] rounded-full bg-[#9DA4AB]" />
