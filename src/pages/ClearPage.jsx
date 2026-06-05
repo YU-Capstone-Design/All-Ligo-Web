@@ -1,9 +1,10 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useLocation, useNavigate, useParams } from "react-router-dom";
 import { FaPlay } from "react-icons/fa6";
 import { IoChevronBack } from "react-icons/io5";
 import { LuCopy } from "react-icons/lu";
 import sparkleBlueIcon from "../assets/queue/star.png";
+import { cancelContent, getContentPreview } from "../apis/PromotionApi";
 
 const promptText =
   "요즘 핫한 맛집/술집을 소개하는 짧은 영상\n퇴근 후나 친구들이랑 가볍게 한잔하기 좋은 분위기를 담아줘. 처음엔 가게 외관이 보이면서 자연스럽게 사람들이 들어가는 장면, 그 다음에는 음식이 지글지글 나오거나 김 올라오는 장면을 클로즈업으로 보여주고, 술 따르는 순간이나 잔 부딪히는 장면도 감각적으로 담아줘.\n중간중간 친구들이 웃으면서 대화하는 자연스러운 분위기도 넣고, 마지막에는 테이블 가득 차려진 음식이랑 전체 분위기를 보여주면 좋겠어. 전체적으로 따뜻한 색감에 너무 과하지 않게, 진짜 내가 가기 앉아있는 느낌 나게 만들어줘.\n자막은 부담스럽지 않게, 오늘은 여기 어때? 분위기까지 괜찮은 곳 정도로 자연스럽게 들어가면 좋겠어.";
@@ -13,9 +14,17 @@ const initialContent = {
   caption: promptText,
   url: "https://map.naver.com/p/entry/...",
   updatedAt: "2026. 05. 12",
+  contentType: "",
+  videoUrl: "",
 };
 
-const formatDate = (date) => {
+const formatDate = (value) => {
+  const date = value ? new Date(value) : null;
+
+  if (!date || Number.isNaN(date.getTime())) {
+    return value || initialContent.updatedAt;
+  }
+
   const year = date.getFullYear();
   const month = String(date.getMonth() + 1).padStart(2, "0");
   const day = String(date.getDate()).padStart(2, "0");
@@ -41,6 +50,32 @@ const getSavedContent = (productId, fallbackContent = {}) => ({
     localStorage.getItem(`queueItem:${productId}:updatedAt`) ||
     fallbackContent.updatedAt ||
     initialContent.updatedAt,
+  contentType: fallbackContent.contentType || initialContent.contentType,
+  videoUrl: fallbackContent.videoUrl || initialContent.videoUrl,
+});
+
+const toPreviewContent = (preview, fallbackContent = initialContent) => ({
+  ...fallbackContent,
+  title: preview.promotionTitle || fallbackContent.title,
+  caption:
+    preview.contentType === "VIDEO"
+      ? preview.caption || preview.bodyText || fallbackContent.caption
+      : preview.bodyText || preview.caption || fallbackContent.caption,
+  url:
+    preview.uploadVideoUrl ||
+    preview.storeUrl ||
+    preview.redirectUrl ||
+    preview.linkUrl ||
+    fallbackContent.url,
+  updatedAt: formatDate(
+    preview.uploadedAt || preview.createdAt || fallbackContent.updatedAt,
+  ),
+  contentType: preview.contentType || fallbackContent.contentType,
+  videoUrl:
+    preview.s3VideoUrl ||
+    preview.localVideoPath ||
+    preview.uploadVideoUrl ||
+    fallbackContent.videoUrl,
 });
 
 const copyText = async (value) => {
@@ -112,37 +147,6 @@ const InfoCard = ({
   </section>
 );
 
-const EditableInfoCard = ({
-  label,
-  value,
-  onChange,
-  multiline = false,
-  labelClassName = "",
-  inputClassName = "",
-}) => (
-  <section className="relative rounded-[8px] bg-white p-[14px]">
-    <CopyButton value={value} />
-    <label
-      className={`text-[12px] font-semibold leading-[18px] text-[#9DA4AB] ${labelClassName}`}
-    >
-      {label}
-    </label>
-    {multiline ? (
-      <textarea
-        value={value}
-        onChange={(event) => onChange(event.target.value)}
-        className="mt-[8px] min-h-[260px] w-full resize-none bg-transparent pr-[30px] text-[14px] font-bold leading-[24px] text-[#111111] outline-none"
-      />
-    ) : (
-      <input
-        value={value}
-        onChange={(event) => onChange(event.target.value)}
-        className={`mt-[8px] w-full bg-transparent pr-[30px] text-[18px] font-bold leading-[27px] text-[#111111] outline-none ${inputClassName}`}
-      />
-    )}
-  </section>
-);
-
 const ScheduleInfo = ({ updatedAt }) => (
   <div className="mt-[8px] space-y-[18px] px-[4px]">
     <div>
@@ -177,50 +181,67 @@ const ClearPage = () => {
   const location = useLocation();
   const { productId } = useParams();
   const contentType = location.state?.contentType;
-  const isVideo = useMemo(
-    () =>
-      contentType
-        ? contentType === "VIDEO" || contentType === "영상"
-        : productId === "2",
-    [contentType, productId],
-  );
-  const contentTypeLabel = isVideo ? "쇼츠" : "블로그";
   const [content, setContent] = useState(() =>
     getSavedContent(productId, {
       title: location.state?.title,
       updatedAt: location.state?.createdAt,
+      contentType,
     }),
   );
-  const [isEditing, setIsEditing] = useState(false);
+  const isVideo = useMemo(
+    () =>
+      content.contentType || contentType
+        ? content.contentType === "VIDEO" ||
+          content.contentType === "영상" ||
+          contentType === "VIDEO" ||
+          contentType === "영상"
+        : productId === "2",
+    [content.contentType, contentType, productId],
+  );
+  const contentTypeLabel = isVideo ? "쇼츠" : "블로그";
+  const [isLoading, setIsLoading] = useState(true);
+  const [isDeleting, setIsDeleting] = useState(false);
+  const [errorMessage, setErrorMessage] = useState("");
 
-  const updateContent = (key, value) => {
-    setContent((prev) => ({ ...prev, [key]: value }));
-  };
+  useEffect(() => {
+    const fetchContentPreview = async () => {
+      try {
+        setIsLoading(true);
+        setErrorMessage("");
 
-  const saveContent = () => {
-    const updatedAt = formatDate(new Date());
+        const preview = await getContentPreview(productId);
+        setContent((prev) => toPreviewContent(preview, prev));
+      } catch (error) {
+        setErrorMessage(
+          error.response?.status === 401
+            ? "로그인이 만료되었어요. 다시 로그인 후 확인해주세요."
+            : error.response?.data?.message ||
+                "완성된 홍보물을 불러오지 못했어요.",
+        );
+      } finally {
+        setIsLoading(false);
+      }
+    };
 
-    localStorage.setItem(`queueItem:${productId}:title`, content.title);
-    localStorage.setItem(`queueItem:${productId}:caption`, content.caption);
-    localStorage.setItem(`queueItem:${productId}:url`, content.url);
-    localStorage.setItem(`queueItem:${productId}:updatedAt`, updatedAt);
-    setContent((prev) => ({ ...prev, updatedAt }));
-    setIsEditing(false);
-  };
+    fetchContentPreview();
+  }, [productId]);
 
-  const deleteQueueItem = () => {
-    const deletedItemIds = JSON.parse(
-      localStorage.getItem("deletedQueueItemIds") || "[]",
-    );
-    const nextDeletedItemIds = Array.from(
-      new Set([...deletedItemIds, Number(productId)]),
-    );
+  const deleteQueueItem = async () => {
+    if (isDeleting) return;
 
-    localStorage.setItem(
-      "deletedQueueItemIds",
-      JSON.stringify(nextDeletedItemIds),
-    );
-    navigate("/queue");
+    try {
+      setIsDeleting(true);
+      setErrorMessage("");
+      await cancelContent(productId);
+      navigate("/queue");
+    } catch (error) {
+      setErrorMessage(
+        error.response?.status === 401
+          ? "로그인이 만료되었어요. 다시 로그인 후 시도해주세요."
+          : error.response?.data?.message || "홍보물 삭제에 실패했어요.",
+      );
+      setIsDeleting(false);
+    }
   };
 
   return (
@@ -260,32 +281,42 @@ const ClearPage = () => {
         </div>
 
         <div className="mt-[14px] space-y-[12px]">
-          {isEditing && !isVideo ? (
-            <EditableInfoCard
-              label="제목"
-              value={content.title}
-              onChange={(value) => updateContent("title", value)}
-              labelClassName="text-[14px] leading-[20px] text-[#7E858C]"
-              inputClassName="text-[24px] leading-[32px] text-[#000000]"
-            />
-          ) : (
-            <InfoCard
-              label="제목"
-              copyValue={isVideo ? "" : content.title}
-              labelClassName="text-[14px] leading-[20px] text-[#7E858C]"
-              contentClassName="text-[24px] leading-[32px] text-[#000000]"
-            >
-              {content.title}
-            </InfoCard>
+          {isLoading && (
+            <p className="rounded-[8px] bg-white p-[14px] text-[14px] font-semibold text-[#7E858C]">
+              완성된 홍보물을 불러오는 중이에요.
+            </p>
           )}
+
+          {errorMessage && (
+            <p className="rounded-[8px] bg-white p-[14px] text-[14px] font-semibold leading-[22px] text-[#DA0004]">
+              {errorMessage}
+            </p>
+          )}
+
+          <InfoCard
+            label="제목"
+            copyValue={isVideo ? "" : content.title}
+            labelClassName="text-[14px] leading-[20px] text-[#7E858C]"
+            contentClassName="text-[24px] leading-[32px] text-[#000000]"
+          >
+            {content.title}
+          </InfoCard>
 
           {isVideo ? (
             <>
-              <section className="mx-auto flex h-[660px] w-full max-w-[400px] items-center justify-center rounded-[8px] bg-[#B8BEC4]">
-                <span className="flex h-[34px] w-[34px] items-center justify-center rounded-full bg-[#8C969F] text-white/80">
-                  <FaPlay className="ml-[2px] text-[14px] text-[#B8BEC4]" />
-                </span>
-              </section>
+              {content.videoUrl ? (
+                <video
+                  className="mx-auto h-[660px] w-full max-w-[400px] rounded-[8px] bg-[#B8BEC4] object-cover"
+                  controls
+                  src={content.videoUrl}
+                />
+              ) : (
+                <section className="mx-auto flex h-[660px] w-full max-w-[400px] items-center justify-center rounded-[8px] bg-[#B8BEC4]">
+                  <span className="flex h-[34px] w-[34px] items-center justify-center rounded-full bg-[#8C969F] text-white/80">
+                    <FaPlay className="ml-[2px] text-[14px] text-[#B8BEC4]" />
+                  </span>
+                </section>
+              )}
 
               <InfoCard label="캡션">
                 <p className="whitespace-pre-line text-[16px] font-semibold leading-[26px] text-[#000000]">
@@ -293,13 +324,6 @@ const ClearPage = () => {
                 </p>
               </InfoCard>
             </>
-          ) : isEditing ? (
-            <EditableInfoCard
-              label="캡션"
-              value={content.caption}
-              onChange={(value) => updateContent("caption", value)}
-              multiline
-            />
           ) : (
             <InfoCard label="캡션" copyValue={content.caption}>
               <p className="whitespace-pre-line text-[16px] font-semibold leading-[26px] text-[#000000]">
@@ -308,56 +332,23 @@ const ClearPage = () => {
             </InfoCard>
           )}
 
-          {isEditing && !isVideo ? (
-            <EditableInfoCard
-              label="연결 URL"
-              value={content.url}
-              onChange={(value) => updateContent("url", value)}
-            />
-          ) : (
-            <InfoCard label="연결 URL" copyValue={content.url}>
-              <p className="truncate text-[24px] font-bold leading-[28px] text-[#3182F6]">
-                {content.url}
-              </p>
-            </InfoCard>
-          )}
+          <InfoCard label="연결 URL" copyValue={content.url}>
+            <p className="truncate text-[24px] font-bold leading-[28px] text-[#3182F6]">
+              {content.url}
+            </p>
+          </InfoCard>
 
           <ScheduleInfo updatedAt={content.updatedAt} />
         </div>
 
-        {isVideo ? (
-          <button
-            type="button"
-            onClick={deleteQueueItem}
-            className="mt-[24px] h-[58px] w-full rounded-[12px] bg-[#FFEAEB] text-[16px] font-bold text-[#DA0004]"
-          >
-            삭제
-          </button>
-        ) : (
-          <div className="mt-[24px] grid grid-cols-[1fr_82px] gap-[12px]">
-            <button
-              type="button"
-              onClick={() => {
-                if (isEditing) {
-                  saveContent();
-                  return;
-                }
-
-                setIsEditing(true);
-              }}
-              className="h-[58px] rounded-[12px] bg-[#E8F3FF] text-[16px] font-bold text-[#2880EB]"
-            >
-              {isEditing ? "완료" : "수정"}
-            </button>
-            <button
-              type="button"
-              onClick={deleteQueueItem}
-              className="h-[58px] rounded-[12px] bg-[#FFEAEB] text-[16px] font-bold text-[#DA0004]"
-            >
-              삭제
-            </button>
-          </div>
-        )}
+        <button
+          type="button"
+          onClick={deleteQueueItem}
+          disabled={isDeleting}
+          className="mt-[24px] h-[58px] w-full rounded-[12px] bg-[#FFEAEB] text-[16px] font-bold text-[#DA0004] disabled:opacity-60"
+        >
+          {isDeleting ? "삭제 중" : "삭제"}
+        </button>
       </main>
     </div>
   );

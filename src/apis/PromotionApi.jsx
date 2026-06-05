@@ -52,3 +52,21 @@ export const updatePromotion = async ({ promotionId, promotionForm }) => {
 
   return response.data
 }
+
+export const cancelContent = async (contentId) => {
+  const response = await api.patch(`/api/v1/contents/${contentId}/cancel`)
+
+  return response.data
+}
+
+export const getContentPreview = async (contentId) => {
+  const response = await api.get(`/api/v1/contents/${contentId}/preview`)
+
+  return response.data
+}
+
+export const trackContent = async (contentId) => {
+  const response = await api.get(`/api/v1/contents/track/${contentId}`)
+
+  return response.data
+}
