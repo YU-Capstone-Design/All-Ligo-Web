@@ -12,32 +12,39 @@ import { getPromotionScheduleQueue } from "../apis/PromotionApi";
 
 const statusStyles = {
   ready: {
-    wrapper: "bg-[#D0E2D5] text-[#424950]",
+    wrapper: "bg-[#D9F1E4] text-[#17894F]",
     icon: statusCompleteIcon,
-    typeBadge: "bg-[#F6F6F8] text-[#424950]",
+    typeBadge: "bg-[#F6F6F8] text-[#62676D]",
     title: "text-[#000000]",
     arrow: "text-[#D3DAE2]",
   },
   progress: {
-    wrapper: "bg-[#E8F3FF] text-[#424950]",
+    wrapper: "bg-[#E8F3FF] text-[#2880EB]",
     icon: statusProgressIcon,
-    typeBadge: "bg-[#F6F6F8]/60 text-[#9DA4AB]",
+    typeBadge: "bg-[#F6F6F8] text-[#9DA4AB]",
     title: "text-[#B4BAC0]",
     arrow: "text-[#EDF1F5]",
   },
   waiting: {
-    wrapper: "bg-[#E2E7ED] text-[#424950]",
+    wrapper: "bg-[#E2E7ED] text-[#62676D]",
     icon: statusWaitingIcon,
-    typeBadge: "bg-[#F6F6F8]/60 text-[#9DA4AB]",
+    typeBadge: "bg-[#F6F6F8] text-[#9DA4AB]",
     title: "text-[#B4BAC0]",
     arrow: "text-[#EDF1F5]",
   },
   failed: {
     wrapper: "bg-[#FFE8E8] text-[#ED0404]",
     icon: statusWaitingIcon,
-    typeBadge: "bg-[#F6F6F8]/60 text-[#9DA4AB]",
+    typeBadge: "bg-[#F6F6F8] text-[#9DA4AB]",
     title: "text-[#B4BAC0]",
     arrow: "text-[#EDF1F5]",
+  },
+  published: {
+    wrapper: "bg-[#D9F1E4] text-[#17894F]",
+    icon: statusCompleteIcon,
+    typeBadge: "bg-[#F6F6F8] text-[#62676D]",
+    title: "text-[#000000]",
+    arrow: "text-[#D3DAE2]",
   },
 };
 
@@ -49,28 +56,28 @@ const QueueCard = ({ item, onClick }) => {
       type="button"
       onClick={onClick}
       disabled={!item.clickable}
-      className="flex h-[90px] w-full items-center rounded-[18px] bg-white px-[18px] text-left shadow-[0_10px_24px_rgba(30,42,58,0.03)] disabled:cursor-default"
+      className="flex h-[90px] w-full items-center rounded-[18px] bg-white px-[16px] text-left shadow-[0_10px_24px_rgba(30,42,58,0.03)] disabled:cursor-default"
     >
       <div className="min-w-0 flex-1">
-        <div className="flex items-center gap-[8px]">
+        <div className="flex items-center gap-[6px]">
           <span
-            className={`inline-flex h-[22px] items-center gap-[4px] rounded-full px-[8px] text-[12px] font-semibold ${styles.wrapper}`}
+            className={`inline-flex h-[22px] items-center gap-[4px] rounded-full px-[8px] text-[12px] font-semibold leading-[12px] ${styles.wrapper}`}
           >
             <img
-              className="h-[16px] w-[16px] object-contain"
+              className="h-[14px] w-[14px] object-contain"
               src={styles.icon}
               alt=""
             />
             {item.status}
           </span>
           <span
-            className={`rounded-full px-[10px] py-[3px] text-[12px] font-medium ${styles.typeBadge}`}
+            className={`inline-flex h-[22px] items-center rounded-full px-[10px] text-[12px] font-medium leading-[12px] ${styles.typeBadge}`}
           >
             {item.type}
           </span>
         </div>
         <p
-          className={`mt-[10px] truncate text-[20px] font-medium ${styles.title}`}
+          className={`mt-[10px] truncate text-[20px] font-medium leading-[24px] ${styles.title}`}
         >
           {item.title}
         </p>
@@ -84,17 +91,35 @@ const getQueueTone = (status) => {
   if (status === "SUCCESS") return "ready";
   if (status === "PROCESSING") return "progress";
   if (status === "FAILED") return "failed";
+  if (status === "PUBLISHED") return "published";
 
   return "waiting";
+};
+
+const statusLabelMap = {
+  PENDING: "대기중",
+  PROCESSING: "생성중",
+  SUCCESS: "생성 완료",
+  FAILED: "실패",
+  PUBLISHED: "업로드 완료",
+};
+
+const contentTypeLabelMap = {
+  POST: "텍스트",
+  BLOG: "텍스트",
+  VIDEO: "영상",
 };
 
 const toQueueItem = (item) => ({
   id: item.executionId,
   promotionId: item.promotionId,
   contentId: item.contentId,
-  status: item.statusLabel || item.status,
+  status: item.statusLabel || statusLabelMap[item.status] || item.status,
   statusCode: item.status,
-  type: item.contentTypeLabel || item.contentType,
+  type:
+    item.contentTypeLabel ||
+    contentTypeLabelMap[item.contentType] ||
+    item.contentType,
   contentType: item.contentType,
   title: item.promotionTitle || "게시글 제목",
   tone: getQueueTone(item.status),
@@ -136,9 +161,7 @@ const Queue = () => {
     fetchQueue();
   }, []);
 
-  const scheduledCount = queueItems.filter((item) =>
-    ["progress", "waiting"].includes(item.tone),
-  ).length;
+  const scheduledCount = queueItems.length;
 
   return (
     <div className="no-scrollbar h-[100dvh] overflow-y-auto bg-[#F5F6F8] px-[16px] pb-[128px] pt-[18px]">
@@ -165,15 +188,15 @@ const Queue = () => {
       <main className="mt-[18px]">
         <section className="flex items-start gap-[8px]">
           <img
-            className="mt-[-5px] h-[48px] w-[48px] object-contain"
+            className="mt-[15px] h-[28px] w-[28px] object-contain"
             src={todayStatusIcon}
             alt=""
           />
-          <div className="text-[20px] font-bold leading-[24px] text-[#000000]">
-            <p className="text-[14px] font-mediumleading-[16px] text-[#000000]">
+          <div className="min-w-0 text-[20px] font-bold leading-[24px] text-[#000000]">
+            <p className="text-[14px] font-medium leading-[16px] text-[#000000]">
               {todayLabel}
             </p>
-            <p>
+            <p className="mt-[4px]">
               오늘 업로드 예정 게시글이{" "}
               <span className="text-[#2880EB]">{scheduledCount}개</span> 있어요!
             </p>
@@ -199,23 +222,25 @@ const Queue = () => {
             </p>
           )}
 
-          {!isLoading && !errorMessage && queueItems.map((item) => (
-            <QueueCard
-              key={item.id}
-              item={item}
-              onClick={() => {
-                if (!item.clickable) return;
+          {!isLoading &&
+            !errorMessage &&
+            queueItems.map((item) => (
+              <QueueCard
+                key={item.id}
+                item={item}
+                onClick={() => {
+                  if (!item.clickable) return;
 
-                navigate(`/clear/${item.contentId || item.id}`, {
-                  state: {
-                    contentType: item.contentType,
-                    title: item.title,
-                    createdAt: item.executedAt,
-                  },
-                });
-              }}
-            />
-          ))}
+                  navigate(`/clear/${item.contentId || item.id}`, {
+                    state: {
+                      contentType: item.contentType,
+                      title: item.title,
+                      createdAt: item.executedAt,
+                    },
+                  });
+                }}
+              />
+            ))}
         </section>
       </main>
 
