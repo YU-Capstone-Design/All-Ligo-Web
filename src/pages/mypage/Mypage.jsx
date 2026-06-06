@@ -94,7 +94,7 @@ const MyPage = () => {
   const handleLogout = () => {
     logout();
     setIsSettingsOpen(false);
-    navigate("/owner-login");
+    navigate("/splash");
   };
 
   useEffect(() => {
