@@ -1,26 +1,51 @@
 import HomeMetricCard from "./HomeMetricCard";
 
-const tags = [
-  { label: "키워드1", value: "65%", color: "#FFD158" },
-  { label: "키워드2", value: "46%", color: "#15C47E" },
-  { label: "키워드3", value: "20%", color: "#B44BD7" },
-];
+const tagColors = ["#FFD158", "#15C47E", "#B44BD7"];
 
-const TagClickRatioChart = () => {
+const buildConicGradient = (tags) => {
+  if (!tags.length) return "#E5E8EB";
+
+  let currentDegree = 0;
+  const gradientStops = tags.map((tag) => {
+    const nextDegree = currentDegree + (Number(tag.ratio || 0) / 100) * 360;
+    const stop = `${tag.color} ${currentDegree}deg ${nextDegree}deg`;
+    currentDegree = nextDegree;
+    return stop;
+  });
+
+  if (currentDegree < 360) {
+    gradientStops.push(`#E5E8EB ${currentDegree}deg 360deg`);
+  }
+
+  return `conic-gradient(${gradientStops.join(", ")})`;
+};
+
+const TagClickRatioChart = ({ statistics }) => {
+  const tags = (statistics?.topTagClickRatios || []).map((tag, index) => ({
+    label: tag.tagName,
+    ratio: Number(tag.ratio || 0),
+    color: tagColors[index % tagColors.length],
+  }));
+
   return (
     <HomeMetricCard title="태그 별 클릭 비율">
       <div className="flex h-[140px] items-center gap-[26px]">
         <div
           className="flex h-[140px] w-[140px] shrink-0 items-center justify-center rounded-full"
           style={{
-            background:
-              "conic-gradient(#B44BD7 0deg 56deg, #15C47E 56deg 154deg, #FFD158 154deg 360deg)",
+            background: buildConicGradient(tags),
           }}
         >
           <div className="h-[94px] w-[94px] rounded-full bg-white" />
         </div>
 
         <div className="flex min-w-0 flex-1 flex-col gap-[12px]">
+          {tags.length === 0 && (
+            <p className="text-[14px] font-medium text-[#7E858C]">
+              태그 클릭 데이터가 없습니다.
+            </p>
+          )}
+
           {tags.map((tag) => (
             <div key={tag.label} className="flex items-center gap-[8px]">
               <span
@@ -28,9 +53,9 @@ const TagClickRatioChart = () => {
                 style={{ backgroundColor: tag.color }}
               />
               <span className="w-[42px] text-[18px] leading-[24px] font-bold text-black">
-                {tag.value}
+                {tag.ratio}%
               </span>
-              <span className="text-[18px] leading-[24px] text-[#62676D]">
+              <span className="min-w-0 truncate text-[18px] leading-[24px] text-[#62676D]">
                 {tag.label}
               </span>
             </div>
