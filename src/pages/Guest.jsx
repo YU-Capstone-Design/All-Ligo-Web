@@ -157,14 +157,14 @@ const Guest = () => {
   }, []);
 
   const handleLocationPermissionClick = useCallback(() => {
-    setErrorMessage("");
-
     if (!navigator.geolocation) {
       setLocationPermissionState("unsupported");
       setIsLocationPromptOpen(true);
       setStores([]);
       return;
     }
+
+    setErrorMessage("");
 
     navigator.geolocation.getCurrentPosition(
       (position) => {
@@ -182,9 +182,9 @@ const Guest = () => {
           setLocationPermissionState("denied");
           setIsLocationPromptOpen(true);
           setStores([]);
-          setIsLoading(false);
-          return;
-        }
+        setIsLoading(false);
+        return;
+      }
 
         setLocationPermissionState("prompt");
         setIsLocationPromptOpen(true);
