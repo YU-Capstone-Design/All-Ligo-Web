@@ -20,6 +20,7 @@ import Queue from "./pages/Queue";
 import Notifications from "./pages/Notifications";
 import Guest from "./pages/Guest";
 import GuestCouponList from "./pages/GuestCouponList";
+import AuthSuccess from "./pages/AuthSuccess";
 
 import MyPage from "./pages/mypage/Mypage";
 import CouponRegistration from "./pages/mypage/CouponRegistration";
@@ -53,6 +54,7 @@ const App = () => {
           <Route path="/notifications" element={<Notifications />} />
           <Route path="/guest" element={<Guest />} />
           <Route path="/guest/coupons" element={<GuestCouponList />} />
+          <Route path="/auth-success" element={<AuthSuccess />} />
           <Route path="/product/:productId/edit" element={<ProductEdit />} />
           <Route path="/clear/:productId" element={<ClearPage />} />
           <Route path="/makecomplete" element={<MakeComplete />} />
