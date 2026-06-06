@@ -16,6 +16,11 @@ export const setAuthToken = (token) => {
   api.defaults.headers.common.Authorization = normalizedToken;
 };
 
+export const clearAuthToken = () => {
+  localStorage.removeItem("ownerAccessToken");
+  delete api.defaults.headers.common.Authorization;
+};
+
 const api = axios.create({
   baseURL: import.meta.env.DEV ? "" : "https://spring.allligo-agent.cloud",
   
@@ -41,8 +46,7 @@ api.interceptors.response.use(
   (response) => response,
   (error) => {
     if (error.response?.status === 401) {
-      localStorage.removeItem("ownerAccessToken");
-      delete api.defaults.headers.common.Authorization;
+      clearAuthToken();
     }
 
     return Promise.reject(error);

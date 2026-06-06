@@ -22,6 +22,7 @@ import Guest from "./pages/Guest";
 import GuestCouponList from "./pages/GuestCouponList";
 import AuthSuccess from "./pages/AuthSuccess";
 import AuthFail from "./pages/AuthFail";
+import RequireOwnerAuth from "./components/auth/RequireOwnerAuth";
 
 import MyPage from "./pages/mypage/Mypage";
 import CouponRegistration from "./pages/mypage/CouponRegistration";
@@ -29,6 +30,12 @@ import CouponModify from "./pages/mypage/CouponModify";
 import ProfileEdit from "./pages/mypage/ProfileEdit";
 import MyLocationSetting from "./pages/mypage/MyLocationSettiing";
 import FirstScreen from "./pages/FirstScreen";
+
+const requireOwnerAuth = (page) => (
+  <RequireOwnerAuth>
+    {page}
+  </RequireOwnerAuth>
+);
 
 const App = () => {
   return (
@@ -48,24 +55,48 @@ const App = () => {
           <Route path="/owner-password" element={<OwnerPassword />} />
           <Route path="/success-page" element={<SuccessPage />} />
 
-          <Route path="/makepage" element={<MakePage />} />
-          <Route path="/home" element={<Home />} />
-          <Route path="/product" element={<Product />} />
-          <Route path="/queue" element={<Queue />} />
-          <Route path="/notifications" element={<Notifications />} />
+          <Route path="/makepage" element={requireOwnerAuth(<MakePage />)} />
+          <Route path="/home" element={requireOwnerAuth(<Home />)} />
+          <Route path="/product" element={requireOwnerAuth(<Product />)} />
+          <Route path="/queue" element={requireOwnerAuth(<Queue />)} />
+          <Route
+            path="/notifications"
+            element={requireOwnerAuth(<Notifications />)}
+          />
           <Route path="/guest" element={<Guest />} />
           <Route path="/guest/coupons" element={<GuestCouponList />} />
           <Route path="/auth-success" element={<AuthSuccess />} />
           <Route path="/auth-fail" element={<AuthFail />} />
-          <Route path="/product/:productId/edit" element={<ProductEdit />} />
-          <Route path="/clear/:productId" element={<ClearPage />} />
-          <Route path="/makecomplete" element={<MakeComplete />} />
+          <Route
+            path="/product/:productId/edit"
+            element={requireOwnerAuth(<ProductEdit />)}
+          />
+          <Route
+            path="/clear/:productId"
+            element={requireOwnerAuth(<ClearPage />)}
+          />
+          <Route
+            path="/makecomplete"
+            element={requireOwnerAuth(<MakeComplete />)}
+          />
 
-          <Route path="/mypage" element={<MyPage />} />
-          <Route path="/mypage/coupons/new" element={<CouponRegistration />} />
-          <Route path="/mypage/coupons/modify" element={<CouponModify />} />
-          <Route path="/mypage/profile" element={<ProfileEdit />} />
-          <Route path="/mypage/location" element={<MyLocationSetting />} />
+          <Route path="/mypage" element={requireOwnerAuth(<MyPage />)} />
+          <Route
+            path="/mypage/coupons/new"
+            element={requireOwnerAuth(<CouponRegistration />)}
+          />
+          <Route
+            path="/mypage/coupons/modify"
+            element={requireOwnerAuth(<CouponModify />)}
+          />
+          <Route
+            path="/mypage/profile"
+            element={requireOwnerAuth(<ProfileEdit />)}
+          />
+          <Route
+            path="/mypage/location"
+            element={requireOwnerAuth(<MyLocationSetting />)}
+          />
           <Route path="/" element={<FirstScreen/>}/>
         </Route>
       </Routes>
