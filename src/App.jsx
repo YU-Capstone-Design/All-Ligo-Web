@@ -23,6 +23,7 @@ import GuestCouponList from "./pages/GuestCouponList";
 import AuthSuccess from "./pages/AuthSuccess";
 import AuthFail from "./pages/AuthFail";
 import RequireOwnerAuth from "./components/auth/RequireOwnerAuth";
+import NotFound from "./pages/NotFound";
 
 import MyPage from "./pages/mypage/Mypage";
 import CouponRegistration from "./pages/mypage/CouponRegistration";
@@ -98,6 +99,7 @@ const App = () => {
             element={requireOwnerAuth(<MyLocationSetting />)}
           />
           <Route path="/" element={<FirstScreen/>}/>
+          <Route path="*" element={<NotFound />} />
         </Route>
       </Routes>
     </BrowserRouter>
