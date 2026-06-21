@@ -13,7 +13,7 @@ const isValidLocationCoords = (lat, lng) =>
   Number.isFinite(lng) &&
   !(lat === 0 && lng === 0);
 
-const getInitialLocation = () => {
+const getSavedLocation = () => {
   const savedTitle = localStorage.getItem("mypageStoreLocation");
   const savedSubtitle = localStorage.getItem("mypageStoreLocationDetail");
   const savedLatitude = Number(localStorage.getItem("mypageStoreLatitude"));
@@ -30,6 +30,14 @@ const getInitialLocation = () => {
       lng: savedLongitude,
     };
   }
+
+  return null;
+};
+
+const getInitialLocation = () => {
+  const savedLocation = getSavedLocation();
+
+  if (savedLocation) return savedLocation;
 
   return {
     title: "경북 경산시 현재 내 위치",
@@ -138,58 +146,6 @@ const MyLocationSetting = () => {
     window.setTimeout(() => mapRef.current?.relayout(), 100);
   };
 
-  const confirmSearch = () => {
-    const query = searchText.trim();
-
-    if (!query || !placesRef.current || !window.kakao?.maps) {
-      return;
-    }
-
-    setMapError("");
-
-    placesRef.current.keywordSearch(query, (result, status) => {
-      if (status !== window.kakao.maps.services.Status.OK || !result.length) {
-        setSearchResults([]);
-        setMapError("검색 결과를 찾지 못했어요.");
-        return;
-      }
-
-      const place = result[0];
-      const title =
-        place.road_address_name || place.address_name || place.place_name;
-      const subtitle =
-        place.place_name && place.place_name !== title
-          ? place.place_name
-          : place.address_name;
-
-      setSelectedLocation(Number(place.y), Number(place.x), title, subtitle);
-      setSearchText("");
-      setSearchResults([]);
-      setIsSearchMode(false);
-      window.setTimeout(() => mapRef.current?.relayout(), 100);
-    });
-  };
-
-  const useCurrentLocation = () => {
-    if (!navigator.geolocation) {
-      setMapError("현재 위치를 사용할 수 없어요.");
-      return;
-    }
-
-    navigator.geolocation.getCurrentPosition(
-      (position) => {
-        setMapError("");
-        setAddressFromCoords(
-          position.coords.latitude,
-          position.coords.longitude
-        );
-      },
-      () => {
-        setMapError("현재 위치 권한을 확인해주세요.");
-      }
-    );
-  };
-
   const handleSelect = () => {
     localStorage.setItem("mypageStoreLocation", selected.title);
     localStorage.setItem("mypageStoreLocationDetail", selected.subtitle);
@@ -248,8 +204,35 @@ const MyLocationSetting = () => {
           window.setTimeout(() => map.relayout(), 100);
         };
 
-        const initialLocation = getInitialLocation();
-        initMap(initialLocation.lat, initialLocation.lng);
+        const savedLocation = getSavedLocation();
+
+        if (savedLocation) {
+          initMap(savedLocation.lat, savedLocation.lng);
+          return;
+        }
+
+        if (!navigator.geolocation) {
+          initMap(DEFAULT_CENTER.lat, DEFAULT_CENTER.lng);
+          setMapError("현재 위치를 사용할 수 없어 기본 위치로 표시했어요.");
+          return;
+        }
+
+        navigator.geolocation.getCurrentPosition(
+          (position) => {
+            if (!isMounted) return;
+            initMap(position.coords.latitude, position.coords.longitude);
+          },
+          () => {
+            if (!isMounted) return;
+            initMap(DEFAULT_CENTER.lat, DEFAULT_CENTER.lng);
+            setMapError("현재 위치 권한을 확인해주세요.");
+          },
+          {
+            enableHighAccuracy: true,
+            timeout: 7000,
+            maximumAge: 60000,
+          }
+        );
       })
       .catch((error) => {
         console.error(error);
