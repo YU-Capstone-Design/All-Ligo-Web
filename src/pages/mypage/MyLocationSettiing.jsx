@@ -8,13 +8,21 @@ import { FiSearch } from "react-icons/fi";
 
 const DEFAULT_CENTER = { lat: 35.8338, lng: 128.7597 };
 
+const isValidLocationCoords = (lat, lng) =>
+  Number.isFinite(lat) &&
+  Number.isFinite(lng) &&
+  !(lat === 0 && lng === 0);
+
 const getInitialLocation = () => {
   const savedTitle = localStorage.getItem("mypageStoreLocation");
   const savedSubtitle = localStorage.getItem("mypageStoreLocationDetail");
   const savedLatitude = Number(localStorage.getItem("mypageStoreLatitude"));
   const savedLongitude = Number(localStorage.getItem("mypageStoreLongitude"));
 
-  if (savedTitle && !Number.isNaN(savedLatitude) && !Number.isNaN(savedLongitude)) {
+  if (
+    savedTitle &&
+    isValidLocationCoords(savedLatitude, savedLongitude)
+  ) {
     return {
       title: savedTitle,
       subtitle: savedSubtitle || "",
