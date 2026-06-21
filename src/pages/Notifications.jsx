@@ -1,37 +1,118 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { IoChevronBack } from "react-icons/io5";
-import api from "../apis/api";
 import statusCompleteIcon from "../assets/queue/finish.png";
+import {
+  getNotifications,
+  markNotificationAsRead,
+} from "../apis/NotificationApi";
 
-const getNotifications = async () => {
-  const response = await api.get("/api/v1/notifications");
+const parseKoreanDate = (value) => {
+  if (!value) return null;
 
-  return response.data;
-};
+  const normalizedValue = /[zZ]|[+-]\d{2}:\d{2}$/.test(value)
+    ? value
+    : `${value}Z`;
+  const date = new Date(normalizedValue);
 
-const markNotificationAsRead = async (notificationId) => {
-  await api.patch(`/api/v1/notifications/${notificationId}/read`);
+  return Number.isNaN(date.getTime()) ? null : date;
 };
 
 const formatNotificationTime = (createdAt) => {
   if (!createdAt) return "";
 
-  const createdDate = new Date(createdAt);
-  const now = new Date();
-  const diffMinutes = Math.floor((now - createdDate) / 60000);
+  const createdDate = parseKoreanDate(createdAt);
 
-  if (Number.isNaN(createdDate.getTime())) return "";
+  if (!createdDate) return "";
+
+  const diffMinutes = Math.max(
+    0,
+    Math.floor((Date.now() - createdDate.getTime()) / 60000)
+  );
+
   if (diffMinutes < 1) return "방금";
-  if (diffMinutes < 60) return `${diffMinutes}분 전`;
-  if (diffMinutes < 24 * 60) return `${Math.floor(diffMinutes / 60)}시간 전`;
+  if (diffMinutes < 60) return `${diffMinutes}분전`;
+  if (diffMinutes < 24 * 60) return `${Math.floor(diffMinutes / 60)}시간전`;
 
-  const year = String(createdDate.getFullYear()).slice(2);
-  const month = String(createdDate.getMonth() + 1).padStart(2, "0");
-  const day = String(createdDate.getDate()).padStart(2, "0");
+  const parts = new Intl.DateTimeFormat("ko-KR", {
+    timeZone: "Asia/Seoul",
+    year: "2-digit",
+    month: "2-digit",
+    day: "2-digit",
+  }).formatToParts(createdDate);
+  const year = parts.find((part) => part.type === "year")?.value || "";
+  const month = parts.find((part) => part.type === "month")?.value || "";
+  const day = parts.find((part) => part.type === "day")?.value || "";
 
   return `${year}.${month}.${day}`;
 };
+
+const getNestedValue = (source, keys) => {
+  for (const key of keys) {
+    const value = key.split(".").reduce((current, path) => current?.[path], source);
+
+    if (value !== undefined && value !== null && value !== "") {
+      return value;
+    }
+  }
+
+  return undefined;
+};
+
+const normalizeNotification = (notification = {}) => ({
+  ...notification,
+  notificationId: getNestedValue(notification, [
+    "notificationId",
+    "id",
+    "notification.notificationId",
+  ]),
+  contentId: getNestedValue(notification, [
+    "contentId",
+    "content.contentId",
+    "payload.contentId",
+    "data.contentId",
+  ]),
+  executionId: getNestedValue(notification, [
+    "executionId",
+    "promotionExecutionId",
+    "content.executionId",
+    "payload.executionId",
+    "data.executionId",
+  ]),
+  promotionId: getNestedValue(notification, [
+    "promotionId",
+    "content.promotionId",
+    "payload.promotionId",
+    "data.promotionId",
+  ]),
+  promotionTitle: getNestedValue(notification, [
+    "promotionTitle",
+    "title",
+    "content.promotionTitle",
+    "payload.promotionTitle",
+    "data.promotionTitle",
+  ]),
+  contentType: getNestedValue(notification, [
+    "contentType",
+    "content.contentType",
+    "payload.contentType",
+    "data.contentType",
+  ]),
+  scheduledAt: getNestedValue(notification, [
+    "scheduledAt",
+    "executedAt",
+    "publishTime",
+    "content.scheduledAt",
+    "content.executedAt",
+    "content.publishTime",
+    "payload.scheduledAt",
+    "payload.executedAt",
+    "payload.publishTime",
+    "data.scheduledAt",
+    "data.executedAt",
+    "data.publishTime",
+  ]),
+});
 
 const NotificationItem = ({ item, onClick }) => {
   const faded = item.isRead;
@@ -92,19 +173,33 @@ const Notifications = () => {
 
   const handleNotificationClick = async (item) => {
     try {
+      await markNotificationAsRead(item.notificationId);
+      const nextNotification = { ...item, isRead: true };
+
       if (!item.isRead) {
-        await markNotificationAsRead(item.notificationId);
         setNotifications((prevNotifications) =>
           prevNotifications.map((notification) =>
             notification.notificationId === item.notificationId
-              ? { ...notification, isRead: true }
+              ? nextNotification
               : notification
           )
         );
       }
 
-      if (item.contentId) {
-        navigate(`/product/${item.contentId}/edit`);
+      const contentId = item.contentId;
+
+      if (contentId) {
+        navigate(`/clear/${contentId}`, {
+          state: {
+            contentType: nextNotification.contentType,
+            title: nextNotification.promotionTitle,
+            createdAt: nextNotification.createdAt,
+            executionId: nextNotification.executionId,
+            promotionId: nextNotification.promotionId,
+            notificationId: nextNotification.notificationId,
+            scheduledAt: nextNotification.scheduledAt,
+          },
+        });
       }
     } catch (error) {
       setErrorMessage(
@@ -123,9 +218,15 @@ const Notifications = () => {
         const nextNotifications = await getNotifications();
 
         if (isMounted) {
-          setNotifications(
-            Array.isArray(nextNotifications) ? nextNotifications : []
-          );
+          const sortedNotifications = Array.isArray(nextNotifications)
+            ? nextNotifications.map(normalizeNotification).sort(
+                (a, b) =>
+                  (parseKoreanDate(b.createdAt)?.getTime() || 0) -
+                  (parseKoreanDate(a.createdAt)?.getTime() || 0)
+              )
+            : [];
+
+          setNotifications(sortedNotifications);
         }
       } catch (error) {
         if (isMounted) {

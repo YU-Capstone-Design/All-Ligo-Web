@@ -4,26 +4,70 @@ import { FaPlay } from "react-icons/fa6";
 import { IoChevronBack } from "react-icons/io5";
 import { LuCopy } from "react-icons/lu";
 import sparkleBlueIcon from "../assets/queue/star.png";
-import { cancelContent, getContentPreview } from "../apis/PromotionApi";
-
-const promptText =
-  "요즘 핫한 맛집/술집을 소개하는 짧은 영상\n퇴근 후나 친구들이랑 가볍게 한잔하기 좋은 분위기를 담아줘. 처음엔 가게 외관이 보이면서 자연스럽게 사람들이 들어가는 장면, 그 다음에는 음식이 지글지글 나오거나 김 올라오는 장면을 클로즈업으로 보여주고, 술 따르는 순간이나 잔 부딪히는 장면도 감각적으로 담아줘.\n중간중간 친구들이 웃으면서 대화하는 자연스러운 분위기도 넣고, 마지막에는 테이블 가득 차려진 음식이랑 전체 분위기를 보여주면 좋겠어. 전체적으로 따뜻한 색감에 너무 과하지 않게, 진짜 내가 가기 앉아있는 느낌 나게 만들어줘.\n자막은 부담스럽지 않게, 오늘은 여기 어때? 분위기까지 괜찮은 곳 정도로 자연스럽게 들어가면 좋겠어.";
+import {
+  cancelContent,
+  getContentPreview,
+  getPromotionScheduleQueue,
+} from "../apis/PromotionApi";
 
 const initialContent = {
-  title: "게시글 제목",
-  caption: promptText,
-  url: "https://map.naver.com/p/entry/...",
-  updatedAt: "2026. 05. 12",
+  title: "",
+  caption: "",
+  contentId: "",
+  executionId: "",
+  promotionId: "",
+  url: "",
+  updatedAt: "",
+  scheduledAt: "",
+  storeName: "",
   contentType: "",
+  contentTypeLabel: "",
+  posterUrl: "",
   videoUrl: "",
+  trackUrl: "",
+};
+
+const getValidDate = (value) => {
+  if (!value) return null;
+
+  const normalizedValue = /[zZ]|[+-]\d{2}:\d{2}$/.test(value)
+    ? value
+    : `${value}Z`;
+  const date = new Date(normalizedValue);
+
+  return date && !Number.isNaN(date.getTime()) ? date : null;
+};
+
+const getScheduleDate = (value) => {
+  if (!value) return null;
+
+  const date = new Date(value);
+
+  return date && !Number.isNaN(date.getTime()) ? date : null;
 };
 
 const formatDate = (value) => {
-  const date = value ? new Date(value) : null;
+  const date = getValidDate(value);
 
-  if (!date || Number.isNaN(date.getTime())) {
-    return value || initialContent.updatedAt;
-  }
+  if (!date) return value || "-";
+
+  const parts = new Intl.DateTimeFormat("ko-KR", {
+    timeZone: "Asia/Seoul",
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+  }).formatToParts(date);
+  const year = parts.find((part) => part.type === "year")?.value || "";
+  const month = parts.find((part) => part.type === "month")?.value || "";
+  const day = parts.find((part) => part.type === "day")?.value || "";
+
+  return `${year}. ${month}. ${day}`;
+};
+
+const formatScheduleDate = (value) => {
+  const date = getScheduleDate(value);
+
+  if (!date) return value || "-";
 
   const year = date.getFullYear();
   const month = String(date.getMonth() + 1).padStart(2, "0");
@@ -32,51 +76,158 @@ const formatDate = (value) => {
   return `${year}. ${month}. ${day}`;
 };
 
-const getSavedContent = (productId, fallbackContent = {}) => ({
+const formatScheduleTime = (value) => {
+  const date = getScheduleDate(value);
+
+  if (!date) return value || "-";
+
+  const hours = String(date.getHours()).padStart(2, "0");
+  const minutes = String(date.getMinutes()).padStart(2, "0");
+
+  return `${hours}:${minutes}`;
+};
+
+const formatKoreanScheduleTime = (value) => {
+  const date = getScheduleDate(value);
+
+  if (!date) return value || "-";
+
+  return `${date.getHours()}시 ${String(date.getMinutes()).padStart(2, "0")}분`;
+};
+
+const isSameId = (first, second) =>
+  first !== undefined &&
+  first !== null &&
+  second !== undefined &&
+  second !== null &&
+  String(first) === String(second);
+
+const getItemContentStatus = (item) => item?.contentStatus;
+
+const isPreviewableScheduleItem = (item) =>
+  !getItemContentStatus(item) || getItemContentStatus(item) === "GENERATED";
+
+const findScheduleItem = (scheduleItems, preview, contentId) =>
+  scheduleItems.find(
+    (item) =>
+      isPreviewableScheduleItem(item) &&
+      (isSameId(item.contentId, preview.contentId || contentId) ||
+        isSameId(item.promotionId, preview.promotionId) ||
+        isSameId(item.executionId, preview.executionId))
+  );
+
+const getSavedContent = (fallbackContent = {}) => ({
   ...initialContent,
-  title:
-    localStorage.getItem(`queueItem:${productId}:title`) ||
-    fallbackContent.title ||
-    initialContent.title,
-  caption:
-    localStorage.getItem(`queueItem:${productId}:caption`) ||
-    fallbackContent.caption ||
-    initialContent.caption,
-  url:
-    localStorage.getItem(`queueItem:${productId}:url`) ||
-    fallbackContent.url ||
-    initialContent.url,
-  updatedAt:
-    localStorage.getItem(`queueItem:${productId}:updatedAt`) ||
-    fallbackContent.updatedAt ||
-    initialContent.updatedAt,
+  contentId: fallbackContent.contentId || initialContent.contentId,
+  executionId: fallbackContent.executionId || initialContent.executionId,
+  promotionId: fallbackContent.promotionId || initialContent.promotionId,
+  title: fallbackContent.title || initialContent.title,
+  caption: fallbackContent.caption || initialContent.caption,
+  url: fallbackContent.url || initialContent.url,
+  updatedAt: fallbackContent.updatedAt || initialContent.updatedAt,
+  scheduledAt: fallbackContent.scheduledAt || initialContent.scheduledAt,
+  storeName: fallbackContent.storeName || initialContent.storeName,
   contentType: fallbackContent.contentType || initialContent.contentType,
+  contentTypeLabel:
+    fallbackContent.contentTypeLabel || initialContent.contentTypeLabel,
+  posterUrl: fallbackContent.posterUrl || initialContent.posterUrl,
   videoUrl: fallbackContent.videoUrl || initialContent.videoUrl,
+  trackUrl: fallbackContent.trackUrl || initialContent.trackUrl,
 });
 
-const toPreviewContent = (preview, fallbackContent = initialContent) => ({
+const toPreviewContent = (
+  preview,
+  fallbackContent = initialContent,
+  contentId = "",
+) => ({
   ...fallbackContent,
+  contentId: preview.contentId || contentId || fallbackContent.contentId,
+  executionId: preview.executionId || fallbackContent.executionId,
+  promotionId: preview.promotionId || fallbackContent.promotionId,
   title: preview.promotionTitle || fallbackContent.title,
+  storeName:
+    preview.storeName ||
+    preview.ownerStoreName ||
+    preview.businessName ||
+    preview.store?.name ||
+    fallbackContent.storeName,
   caption:
     preview.contentType === "VIDEO"
       ? preview.caption || preview.bodyText || fallbackContent.caption
       : preview.bodyText || preview.caption || fallbackContent.caption,
   url:
-    preview.uploadVideoUrl ||
     preview.storeUrl ||
     preview.redirectUrl ||
     preview.linkUrl ||
+    preview.uploadVideoUrl ||
     fallbackContent.url,
-  updatedAt: formatDate(
-    preview.uploadedAt || preview.createdAt || fallbackContent.updatedAt,
-  ),
+  updatedAt: preview.uploadedAt || preview.createdAt || fallbackContent.updatedAt,
+  scheduledAt:
+    preview.scheduledAt ||
+    preview.executedAt ||
+    preview.publishTime ||
+    preview.schedule?.publishTime ||
+    preview.schedule?.scheduledAt ||
+    preview.schedule?.executedAt ||
+    fallbackContent.scheduledAt,
   contentType: preview.contentType || fallbackContent.contentType,
+  contentTypeLabel:
+    preview.contentTypeLabel || fallbackContent.contentTypeLabel,
+  posterUrl: preview.posterUrl || fallbackContent.posterUrl,
   videoUrl:
     preview.s3VideoUrl ||
     preview.localVideoPath ||
     preview.uploadVideoUrl ||
     fallbackContent.videoUrl,
+  trackUrl:
+    preview.trackUrl ||
+    preview.trackingUrl ||
+    fallbackContent.trackUrl,
 });
+
+const toScheduledContent = (scheduleItem, fallbackContent = initialContent) => {
+  if (!scheduleItem) return fallbackContent;
+
+  return {
+    ...fallbackContent,
+    contentId: scheduleItem.contentId || fallbackContent.contentId,
+    executionId: scheduleItem.executionId || fallbackContent.executionId,
+    promotionId: scheduleItem.promotionId || fallbackContent.promotionId,
+    scheduledAt:
+      scheduleItem.executedAt ||
+      scheduleItem.scheduledAt ||
+      fallbackContent.scheduledAt,
+    contentType: scheduleItem.contentType || fallbackContent.contentType,
+    contentTypeLabel:
+      scheduleItem.contentTypeLabel || fallbackContent.contentTypeLabel,
+    title: scheduleItem.promotionTitle || fallbackContent.title,
+  };
+};
+
+const getPreviewErrorMessage = (error) => {
+  if (error.response?.status === 401) {
+    return "로그인이 만료되었어요. 다시 로그인 후 확인해주세요.";
+  }
+
+  if (error.response?.status === 400) {
+    return "이미 배포되거나 삭제된 콘텐츠에요.";
+  }
+
+  if (error.response?.status === 404) {
+    return "이미 배포되거나 삭제된 콘텐츠에요.";
+  }
+
+  return error.response?.data?.message || "완성된 홍보물을 불러오지 못했어요.";
+};
+
+const isPreviewRequestError = (error) =>
+  error.response?.status === 400 || error.response?.status === 404;
+
+const isFutureDate = (value) => {
+  const date = getScheduleDate(value);
+
+  return date ? date.getTime() > Date.now() : false;
+};
 
 const copyText = async (value) => {
   if (navigator.clipboard?.writeText) {
@@ -147,32 +298,37 @@ const InfoCard = ({
   </section>
 );
 
-const ScheduleInfo = ({ updatedAt }) => (
+const ScheduleInfo = ({ updatedAt, scheduledAt }) => (
   <div className="mt-[8px] space-y-[18px] px-[4px]">
     <div>
       <p className="text-[12px] font-semibold leading-[18px] text-[#7E858C]">
         최근 수정일
       </p>
       <p className="mt-[6px] text-[18px] font-bold leading-[27px] text-[#20242A]">
-        {updatedAt}
+        {formatDate(updatedAt)}
       </p>
     </div>
-    <div>
-      <p className="text-[12px] font-semibold leading-[18px] text-[#7E858C]">
-        배포 요일
-      </p>
-      <p className="mt-[6px] text-[18px] font-bold leading-[27px] text-[#20242A]">
-        2026. 05. 12
-      </p>
-    </div>
-    <div>
-      <p className="text-[12px] font-semibold leading-[18px] text-[#7E858C]">
-        배포 시간
-      </p>
-      <p className="mt-[6px] text-[18px] font-bold leading-[27px] text-[#20242A]">
-        16시 15분
-      </p>
-    </div>
+
+    {isFutureDate(scheduledAt) && (
+      <>
+        <div>
+          <p className="text-[12px] font-semibold leading-[18px] text-[#7E858C]">
+            배포 요일
+          </p>
+          <p className="mt-[6px] text-[18px] font-bold leading-[27px] text-[#20242A]">
+            {formatScheduleDate(scheduledAt)}
+          </p>
+        </div>
+        <div>
+          <p className="text-[12px] font-semibold leading-[18px] text-[#7E858C]">
+            배포 시간
+          </p>
+          <p className="mt-[6px] text-[18px] font-bold leading-[27px] text-[#20242A]">
+            {formatKoreanScheduleTime(scheduledAt)}
+          </p>
+        </div>
+      </>
+    )}
   </div>
 );
 
@@ -182,10 +338,14 @@ const ClearPage = () => {
   const { productId } = useParams();
   const contentType = location.state?.contentType;
   const [content, setContent] = useState(() =>
-    getSavedContent(productId, {
+    getSavedContent({
+      contentId: productId,
       title: location.state?.title,
       updatedAt: location.state?.createdAt,
+      scheduledAt: location.state?.scheduledAt || location.state?.executedAt,
       contentType,
+      executionId: location.state?.executionId,
+      promotionId: location.state?.promotionId,
     }),
   );
   const isVideo = useMemo(
@@ -199,9 +359,15 @@ const ClearPage = () => {
     [content.contentType, contentType, productId],
   );
   const contentTypeLabel = isVideo ? "쇼츠" : "블로그";
+  const storeName = content.storeName || "가게";
+  const title = content.title || "제목을 불러오지 못했어요.";
+  const caption = content.caption || "생성된 내용을 불러오지 못했어요.";
+  const scheduledTime = formatScheduleTime(content.scheduledAt);
   const [isLoading, setIsLoading] = useState(true);
   const [isDeleting, setIsDeleting] = useState(false);
   const [errorMessage, setErrorMessage] = useState("");
+  const hasPreviewError = Boolean(errorMessage) && !isLoading;
+  const hasScheduleInfo = isFutureDate(content.scheduledAt);
 
   useEffect(() => {
     const fetchContentPreview = async () => {
@@ -209,22 +375,76 @@ const ClearPage = () => {
         setIsLoading(true);
         setErrorMessage("");
 
-        const preview = await getContentPreview(productId);
-        setContent((prev) => toPreviewContent(preview, prev));
-      } catch (error) {
-        setErrorMessage(
-          error.response?.status === 401
-            ? "로그인이 만료되었어요. 다시 로그인 후 확인해주세요."
-            : error.response?.data?.message ||
-                "완성된 홍보물을 불러오지 못했어요.",
+        const scheduleItems = await getPromotionScheduleQueue().catch(() => []);
+        const safeScheduleItems = Array.isArray(scheduleItems)
+          ? scheduleItems
+          : [];
+        const requestedContent = {
+          contentId: productId,
+          executionId: location.state?.executionId,
+          promotionId: location.state?.promotionId,
+        };
+        let preview;
+        let matchedSchedule = findScheduleItem(
+          safeScheduleItems,
+          requestedContent,
+          productId
         );
+        const previewContentId = matchedSchedule?.contentId || productId;
+
+        try {
+          preview = await getContentPreview(previewContentId);
+          matchedSchedule =
+            findScheduleItem(safeScheduleItems, preview, previewContentId) ||
+            matchedSchedule;
+        } catch (previewError) {
+          if (
+            !isPreviewRequestError(previewError) ||
+            !matchedSchedule?.contentId ||
+            isSameId(matchedSchedule.contentId, previewContentId)
+          ) {
+            if (matchedSchedule) {
+              setContent((prev) => toScheduledContent(matchedSchedule, prev));
+            }
+
+            throw previewError;
+          }
+
+          preview = await getContentPreview(matchedSchedule.contentId);
+        }
+
+        if (
+          matchedSchedule?.contentId &&
+          !isSameId(matchedSchedule.contentId, productId)
+        ) {
+          navigate(`/clear/${matchedSchedule.contentId}`, {
+            replace: true,
+            state: {
+              ...location.state,
+              contentType: preview.contentType || matchedSchedule.contentType,
+              title: preview.promotionTitle || matchedSchedule.promotionTitle,
+              createdAt: preview.createdAt || location.state?.createdAt,
+              executionId: preview.executionId || matchedSchedule.executionId,
+              promotionId: preview.promotionId || matchedSchedule.promotionId,
+            },
+          });
+        }
+
+        setContent((prev) =>
+          toScheduledContent(
+            matchedSchedule,
+            toPreviewContent(preview, prev, previewContentId)
+          )
+        );
+      } catch (error) {
+        setErrorMessage(getPreviewErrorMessage(error));
       } finally {
         setIsLoading(false);
       }
     };
 
     fetchContentPreview();
-  }, [productId]);
+  }, [location.state, navigate, productId]);
 
   const deleteQueueItem = async () => {
     if (isDeleting) return;
@@ -244,6 +464,8 @@ const ClearPage = () => {
     }
   };
 
+  const connectionUrl = isVideo ? "" : content.url || content.trackUrl;
+
   return (
     <div className="no-scrollbar h-[100dvh] overflow-y-auto bg-[#F3F4F6] px-[16px] pb-[calc(24px+env(safe-area-inset-bottom))]">
       <header className="relative flex h-[72px] items-center justify-center">
@@ -261,24 +483,28 @@ const ClearPage = () => {
       </header>
 
       <main>
-        <h2 className="text-[24px] font-bold leading-[33px] text-[#000000]">
-          <span className="text-[#3182F6]">'돼지상회'</span> 홍보용 {contentTypeLabel}가
-          <br />
-          완성되었습니다!
-        </h2>
+        {!hasPreviewError && (
+          <>
+            <h2 className="text-[24px] font-bold leading-[33px] text-[#000000]">
+              <span className="text-[#3182F6]">'{storeName}'</span> 홍보용 {contentTypeLabel}가
+              <br />
+              완성되었습니다!
+            </h2>
 
-        <div className="mt-[14px] flex min-h-[45px] items-center gap-[10px] rounded-[8px] bg-[#E8F3FF] px-[12px]">
-          <img
-            className="h-[25px] w-[25px] shrink-0 object-contain"
-            src={sparkleBlueIcon}
-            alt=""
-          />
-          <p className="text-[14px] font-semibold leading-[24px] text-[#000000]">
-            {isVideo
-              ? "18:00에 YouTube에 자동 업로드 될 예정입니다"
-              : "지금 바로 블로그에 붙여넣고 생성해주세요!"}
-          </p>
-        </div>
+            <div className="mt-[14px] flex min-h-[45px] items-center gap-[10px] rounded-[8px] bg-[#E8F3FF] px-[12px]">
+              <img
+                className="h-[25px] w-[25px] shrink-0 object-contain"
+                src={sparkleBlueIcon}
+                alt=""
+              />
+              <p className="text-[14px] font-semibold leading-[24px] text-[#000000]">
+                {isVideo
+                  ? `${scheduledTime}에 YouTube에 자동 업로드 될 예정입니다`
+                  : "지금 바로 블로그에 붙여넣고 생성해주세요!"}
+              </p>
+            </div>
+          </>
+        )}
 
         <div className="mt-[14px] space-y-[12px]">
           {isLoading && (
@@ -287,68 +513,101 @@ const ClearPage = () => {
             </p>
           )}
 
-          {errorMessage && (
-            <p className="rounded-[8px] bg-white p-[14px] text-[14px] font-semibold leading-[22px] text-[#DA0004]">
-              {errorMessage}
-            </p>
-          )}
-
-          <InfoCard
-            label="제목"
-            copyValue={isVideo ? "" : content.title}
-            labelClassName="text-[14px] leading-[20px] text-[#7E858C]"
-            contentClassName="text-[24px] leading-[32px] text-[#000000]"
-          >
-            {content.title}
-          </InfoCard>
-
-          {isVideo ? (
+          {hasPreviewError ? (
+            <section className="rounded-[8px] bg-white px-[18px] py-[28px] text-center">
+              <p className="text-[18px] font-bold leading-[26px] text-[#20242A]">
+                미리보기를 열 수 없어요.
+              </p>
+              <p className="mt-[8px] text-[14px] font-semibold leading-[22px] text-[#7E858C]">
+                {errorMessage}
+              </p>
+              <button
+                type="button"
+                onClick={() => navigate("/notifications")}
+                className="mt-[22px] h-[48px] w-full rounded-[10px] bg-[#3182F6] text-[15px] font-bold text-white"
+              >
+                알림으로 돌아가기
+              </button>
+            </section>
+          ) : (
             <>
-              {content.videoUrl ? (
-                <video
-                  className="mx-auto h-[660px] w-full max-w-[400px] rounded-[8px] bg-[#B8BEC4] object-cover"
-                  controls
-                  src={content.videoUrl}
-                />
+              <InfoCard
+                label="제목"
+                copyValue={isVideo ? "" : content.title}
+                labelClassName="text-[14px] leading-[20px] text-[#7E858C]"
+                contentClassName="text-[24px] leading-[32px] text-[#000000]"
+              >
+                {title}
+              </InfoCard>
+
+              {isVideo ? (
+                <>
+                  {content.videoUrl ? (
+                    <video
+                      className="mx-auto h-[660px] w-full max-w-[400px] rounded-[8px] bg-[#B8BEC4] object-cover"
+                      controls
+                      src={content.videoUrl}
+                    />
+                  ) : (
+                    <section className="mx-auto flex h-[660px] w-full max-w-[400px] items-center justify-center rounded-[8px] bg-[#B8BEC4]">
+                      <span className="flex h-[34px] w-[34px] items-center justify-center rounded-full bg-[#8C969F] text-white/80">
+                        <FaPlay className="ml-[2px] text-[14px] text-[#B8BEC4]" />
+                      </span>
+                    </section>
+                  )}
+
+                  <InfoCard label="캡션">
+                    <p className="whitespace-pre-line text-[16px] font-semibold leading-[26px] text-[#000000]">
+                      {caption}
+                    </p>
+                  </InfoCard>
+                </>
               ) : (
-                <section className="mx-auto flex h-[660px] w-full max-w-[400px] items-center justify-center rounded-[8px] bg-[#B8BEC4]">
-                  <span className="flex h-[34px] w-[34px] items-center justify-center rounded-full bg-[#8C969F] text-white/80">
-                    <FaPlay className="ml-[2px] text-[14px] text-[#B8BEC4]" />
-                  </span>
-                </section>
+                <InfoCard label="캡션" copyValue={content.caption}>
+                  <p className="whitespace-pre-line text-[16px] font-semibold leading-[26px] text-[#000000]">
+                    {caption}
+                  </p>
+                </InfoCard>
               )}
 
-              <InfoCard label="캡션">
-                <p className="whitespace-pre-line text-[16px] font-semibold leading-[26px] text-[#000000]">
-                  {content.caption}
-                </p>
-              </InfoCard>
+              {connectionUrl && (
+                <InfoCard label="연결 URL" copyValue={connectionUrl}>
+                  <a
+                    href={connectionUrl}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="block truncate text-[24px] font-bold leading-[28px] text-[#3182F6] underline-offset-2 active:opacity-70"
+                  >
+                    {connectionUrl}
+                  </a>
+                </InfoCard>
+              )}
+
+              <ScheduleInfo
+                updatedAt={content.updatedAt}
+                scheduledAt={content.scheduledAt}
+              />
             </>
-          ) : (
-            <InfoCard label="캡션" copyValue={content.caption}>
-              <p className="whitespace-pre-line text-[16px] font-semibold leading-[26px] text-[#000000]">
-                {content.caption}
-              </p>
-            </InfoCard>
           )}
 
-          <InfoCard label="연결 URL" copyValue={content.url}>
-            <p className="truncate text-[24px] font-bold leading-[28px] text-[#3182F6]">
-              {content.url}
-            </p>
-          </InfoCard>
-
-          <ScheduleInfo updatedAt={content.updatedAt} />
+          {hasPreviewError && hasScheduleInfo && (
+            <ScheduleInfo
+              updatedAt={content.updatedAt}
+              scheduledAt={content.scheduledAt}
+            />
+          )}
         </div>
 
-        <button
-          type="button"
-          onClick={deleteQueueItem}
-          disabled={isDeleting}
-          className="mt-[24px] h-[58px] w-full rounded-[12px] bg-[#FFEAEB] text-[16px] font-bold text-[#DA0004] disabled:opacity-60"
-        >
-          {isDeleting ? "삭제 중" : "삭제"}
-        </button>
+        {!hasPreviewError && (
+          <button
+            type="button"
+            onClick={deleteQueueItem}
+            disabled={isDeleting}
+            className="mt-[24px] h-[58px] w-full rounded-[12px] bg-[#FFEAEB] text-[16px] font-bold text-[#DA0004] disabled:opacity-60"
+          >
+            {isDeleting ? "삭제 중" : "삭제"}
+          </button>
+        )}
       </main>
     </div>
   );
