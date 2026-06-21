@@ -229,10 +229,10 @@ const MyPage = () => {
               <button
                 type="button"
                 onClick={handleLogout}
-                className="flex h-full w-full items-center gap-[10px] text-[16px] font-semibold text-[#3A3A3A]"
+                className="flex h-full w-full items-center gap-[10px] text-[16px] font-semibold leading-none text-[#3A3A3A]"
               >
-                <MdOutlineLogout className="text-[21px] translate-y-[-2px]" />
-                로그아웃
+                <MdOutlineLogout className="shrink-0 text-[21px]" />
+                <span>로그아웃</span>
               </button>
             </div>
           )}
