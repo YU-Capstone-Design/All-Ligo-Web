@@ -254,7 +254,7 @@ const MyLocationSetting = () => {
       .catch((error) => {
         console.error(error);
         setMapError(
-          "카카오맵을 불러오지 못했어요. API 키와 Web 플랫폼 도메인을 확인해주세요."
+          `${window.location.origin} 도메인을 카카오 JavaScript SDK 도메인에 등록해주세요.`
         );
       });
 

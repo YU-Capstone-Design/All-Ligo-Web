@@ -21,6 +21,8 @@ jobs:
 
       # 의존성 설치 및 빌드
       - name: Install dependencies and build
+        env:
+          VITE_KAKAO_MAP_KEY: ${{ secrets.VITE_KAKAO_MAP_KEY }}
         run: |
           npm install --legacy-peer-deps
           npm run build
