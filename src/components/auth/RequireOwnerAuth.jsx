@@ -13,7 +13,6 @@ const RequireOwnerAuth = ({ children }) => {
     if (isLoggedIn || hasRedirected.current) return
 
     hasRedirected.current = true
-    alert('로그인 후 이용해주세요')
     navigate('/splash', { replace: true })
   }, [isLoggedIn, navigate])
 

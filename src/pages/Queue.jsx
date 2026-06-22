@@ -143,17 +143,56 @@ const getScheduleDate = (value) => {
   return date && !Number.isNaN(date.getTime()) ? date : null;
 };
 
-const getQueuePublishTime = (item) =>
-  item.publishTime || item.scheduledAt || item.executedAt;
+const getKoreanDateKey = (value) => {
+  if (!value) return "";
 
-const isFutureQueueItem = (item) => {
-  const publishDate = getScheduleDate(getQueuePublishTime(item));
+  const date = value instanceof Date ? value : getScheduleDate(value);
 
-  return publishDate ? publishDate.getTime() > Date.now() : false;
+  if (!date || Number.isNaN(date.getTime())) return "";
+
+  const parts = new Intl.DateTimeFormat("en-CA", {
+    timeZone: "Asia/Seoul",
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+  }).formatToParts(date);
+
+  const year = parts.find((part) => part.type === "year")?.value;
+  const month = parts.find((part) => part.type === "month")?.value;
+  const day = parts.find((part) => part.type === "day")?.value;
+
+  return year && month && day ? `${year}-${month}-${day}` : "";
+};
+
+const getScheduledAt = (item) =>
+  item.scheduledAt ||
+  item.publishTime ||
+  item.schedule?.publishTime ||
+  item.schedule?.scheduledAt ||
+  item.content?.scheduledAt ||
+  item.content?.publishTime ||
+  item.payload?.scheduledAt ||
+  item.payload?.publishTime ||
+  item.data?.scheduledAt ||
+  item.data?.publishTime ||
+  "";
+
+const getQueuePublishTime = (item) => getScheduledAt(item) || item.executedAt;
+
+const isTodayFutureSchedule = (item) => {
+  const scheduledAt = getQueuePublishTime(item);
+  const scheduledDate = getScheduleDate(scheduledAt);
+
+  return (
+    !!scheduledDate &&
+    scheduledDate.getTime() > Date.now() &&
+    getKoreanDateKey(scheduledDate) === getKoreanDateKey(new Date())
+  );
 };
 
 const toQueueItem = (item) => {
-  const statusLabel = item.statusLabel || statusLabelMap[item.status] || item.status;
+  const statusLabel =
+    item.statusLabel || statusLabelMap[item.status] || item.status;
 
   return {
     id: item.executionId,
@@ -169,7 +208,7 @@ const toQueueItem = (item) => {
     title: item.promotionTitle || "게시글 제목",
     tone: getQueueTone(item.status, statusLabel),
     publishTime: getQueuePublishTime(item),
-    scheduledAt: item.scheduledAt,
+    scheduledAt: getScheduledAt(item),
     executedAt: item.executedAt,
     clickable: !!item.clickable,
   };
@@ -195,7 +234,7 @@ const Queue = () => {
         const response = await getPromotionScheduleQueue();
         setQueueItems(
           Array.isArray(response)
-            ? response.filter(isFutureQueueItem).map(toQueueItem)
+            ? response.filter(isTodayFutureSchedule).map(toQueueItem)
             : [],
         );
       } catch (error) {

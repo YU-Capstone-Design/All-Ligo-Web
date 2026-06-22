@@ -121,6 +121,38 @@ const getItemContentStatus = (item) => item?.contentStatus;
 const isPreviewableScheduleItem = (item) =>
   !getItemContentStatus(item) || getItemContentStatus(item) === "GENERATED";
 
+const getScheduledAtValue = (item) =>
+  item?.scheduledAt ||
+  item?.publishTime ||
+  item?.uploadTime ||
+  item?.scheduledUploadTime ||
+  item?.uploadScheduledAt ||
+  item?.schedule?.publishTime ||
+  item?.schedule?.scheduledAt ||
+  item?.schedule?.uploadTime ||
+  item?.content?.scheduledAt ||
+  item?.content?.publishTime ||
+  item?.payload?.scheduledAt ||
+  item?.payload?.publishTime ||
+  item?.data?.scheduledAt ||
+  item?.data?.publishTime ||
+  "";
+
+const getNextPromotionScheduleTime = (promotion) => {
+  const schedules = Array.isArray(promotion?.schedules)
+    ? promotion.schedules
+    : [];
+  const now = Date.now();
+
+  const futureSchedules = schedules
+    .map((schedule) => getScheduledAtValue(schedule))
+    .filter(Boolean)
+    .sort((first, second) => new Date(first).getTime() - new Date(second).getTime())
+    .filter((value) => new Date(value).getTime() > now);
+
+  return futureSchedules[0] || getScheduledAtValue(schedules[0]) || "";
+};
+
 const findScheduleItem = (scheduleItems, preview, contentId) =>
   scheduleItems.find(
     (item) =>
@@ -132,7 +164,7 @@ const findScheduleItem = (scheduleItems, preview, contentId) =>
 
 const getUpcomingPublishTime = (schedules = []) =>
   schedules
-    .map((schedule) => schedule.publishTime || schedule.scheduledAt)
+    .map(getScheduledAtValue)
     .filter((publishTime) => isFutureDate(publishTime))
     .sort(
       (first, second) =>
@@ -141,7 +173,7 @@ const getUpcomingPublishTime = (schedules = []) =>
 
 const getLatestPublishTime = (schedules = []) =>
   schedules
-    .map((schedule) => schedule.publishTime || schedule.scheduledAt)
+    .map(getScheduledAtValue)
     .filter((publishTime) => getScheduleDate(publishTime))
     .sort(
       (first, second) =>
@@ -194,7 +226,7 @@ const toPreviewContent = (
     preview.uploadVideoUrl ||
     fallbackContent.url,
   updatedAt: preview.uploadedAt || preview.createdAt || fallbackContent.updatedAt,
-  scheduledAt: fallbackContent.scheduledAt,
+  scheduledAt: getScheduledAtValue(preview) || fallbackContent.scheduledAt,
   contentType: preview.contentType || fallbackContent.contentType,
   contentTypeLabel:
     preview.contentTypeLabel || fallbackContent.contentTypeLabel,
@@ -218,10 +250,7 @@ const toScheduledContent = (scheduleItem, fallbackContent = initialContent) => {
     contentId: scheduleItem.contentId || fallbackContent.contentId,
     executionId: scheduleItem.executionId || fallbackContent.executionId,
     promotionId: scheduleItem.promotionId || fallbackContent.promotionId,
-    scheduledAt:
-      scheduleItem.publishTime ||
-      scheduleItem.scheduledAt ||
-      fallbackContent.scheduledAt,
+    scheduledAt: getScheduledAtValue(scheduleItem) || fallbackContent.scheduledAt,
     contentType: scheduleItem.contentType || fallbackContent.contentType,
     contentTypeLabel:
       scheduleItem.contentTypeLabel || fallbackContent.contentTypeLabel,
@@ -485,7 +514,16 @@ const ClearPage = () => {
         const promotionSchedules = promotionDetail?.schedules || [];
         const upcomingPublishTime = getUpcomingPublishTime(promotionSchedules);
         const latestPublishTime = getLatestPublishTime(promotionSchedules);
-        const resolvedScheduleTime = upcomingPublishTime || latestPublishTime;
+        const scheduleFallbackTime =
+          getScheduledAtValue(matchedSchedule) ||
+          getScheduledAtValue(preview) ||
+          location.state?.scheduledAt ||
+          "";
+        const resolvedScheduleTime =
+          scheduleFallbackTime ||
+          upcomingPublishTime ||
+          latestPublishTime ||
+          getNextPromotionScheduleTime(promotionDetail);
         const fallbackContent = getSavedContent({
           contentId: productId,
           title: location.state?.title,

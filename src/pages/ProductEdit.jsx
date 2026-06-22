@@ -21,6 +21,9 @@ import {
   uploadFileToS3,
 } from "../apis/PromotionApi";
 
+const PROMPT_MAX_LENGTH = 200;
+const formatMinute = (minute) => String(minute).padStart(2, "0");
+
 const moodTags = ["따뜻함", "차분함", "밝음"];
 
 const dayOfWeekMap = {
@@ -42,7 +45,7 @@ const dayLabelMap = Object.entries(dayOfWeekMap).reduce(
 );
 
 const getScheduleLabel = ({ day, hour, minute, label }) =>
-  label || `${day}요일 / ${hour}시 ${minute}분`;
+  label || `${day}요일 / ${hour}시 ${formatMinute(minute)}분`;
 
 const toDateTimeValue = (date) => {
   if (!date) return null;
@@ -184,7 +187,7 @@ const ProductEdit = () => {
   };
 
   const handlePromptChange = (e) => {
-    setPrompt(e.target.value);
+    setPrompt(e.target.value.slice(0, PROMPT_MAX_LENGTH));
     e.target.style.height = "auto";
     e.target.style.height = `${Math.min(e.target.scrollHeight, 360)}px`;
   };
@@ -453,7 +456,9 @@ const ProductEdit = () => {
           <textarea
             value={prompt}
             onChange={handlePromptChange}
-            className="scrollbar-hide mt-[8px] min-h-[245px] w-full resize-none bg-transparent text-[15px] leading-[27px] text-black outline-none"
+            placeholder="AI 에게 전할 말을 입력해주세요 (200자 이내)"
+            maxLength={PROMPT_MAX_LENGTH}
+            className="scrollbar-hide mt-[8px] min-h-[245px] w-full resize-none bg-transparent text-[15px] leading-[27px] text-black outline-none placeholder:text-[#B4BAC0]"
           />
         </section>
 
@@ -585,7 +590,7 @@ const ProductEdit = () => {
               </span>
 
               <span className="text-[24px] font-normal leading-[33px] text-[#000000]">
-                {uploadTime.hour}시 {uploadTime.minute}분
+                {uploadTime.hour}시 {formatMinute(uploadTime.minute)}분
               </span>
             </div>
 
