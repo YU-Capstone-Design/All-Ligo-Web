@@ -7,6 +7,7 @@ import sparkleBlueIcon from "../assets/queue/star.png";
 import {
   cancelContent,
   getContentPreview,
+  getPromotionDetail,
   getPromotionScheduleQueue,
 } from "../apis/PromotionApi";
 
@@ -41,7 +42,20 @@ const getValidDate = (value) => {
 const getScheduleDate = (value) => {
   if (!value) return null;
 
-  const date = new Date(value);
+  const matchedDateTime = String(value).match(
+    /^(\d{4})-(\d{2})-(\d{2})[T\s](\d{2}):(\d{2})(?::(\d{2}))?/,
+  );
+  const date = matchedDateTime
+    ? new Date(
+        Number(matchedDateTime[1]),
+        Number(matchedDateTime[2]) - 1,
+        Number(matchedDateTime[3]),
+        Number(matchedDateTime[4]),
+        Number(matchedDateTime[5]),
+        Number(matchedDateTime[6] || 0),
+        0,
+      )
+    : new Date(value);
 
   return date && !Number.isNaN(date.getTime()) ? date : null;
 };
@@ -116,6 +130,15 @@ const findScheduleItem = (scheduleItems, preview, contentId) =>
         isSameId(item.executionId, preview.executionId))
   );
 
+const getUpcomingPublishTime = (schedules = []) =>
+  schedules
+    .map((schedule) => schedule.publishTime || schedule.scheduledAt)
+    .filter((publishTime) => isFutureDate(publishTime))
+    .sort(
+      (first, second) =>
+        getScheduleDate(first).getTime() - getScheduleDate(second).getTime(),
+    )[0] || "";
+
 const getSavedContent = (fallbackContent = {}) => ({
   ...initialContent,
   contentId: fallbackContent.contentId || initialContent.contentId,
@@ -162,14 +185,7 @@ const toPreviewContent = (
     preview.uploadVideoUrl ||
     fallbackContent.url,
   updatedAt: preview.uploadedAt || preview.createdAt || fallbackContent.updatedAt,
-  scheduledAt:
-    preview.scheduledAt ||
-    preview.executedAt ||
-    preview.publishTime ||
-    preview.schedule?.publishTime ||
-    preview.schedule?.scheduledAt ||
-    preview.schedule?.executedAt ||
-    fallbackContent.scheduledAt,
+  scheduledAt: fallbackContent.scheduledAt,
   contentType: preview.contentType || fallbackContent.contentType,
   contentTypeLabel:
     preview.contentTypeLabel || fallbackContent.contentTypeLabel,
@@ -194,7 +210,7 @@ const toScheduledContent = (scheduleItem, fallbackContent = initialContent) => {
     executionId: scheduleItem.executionId || fallbackContent.executionId,
     promotionId: scheduleItem.promotionId || fallbackContent.promotionId,
     scheduledAt:
-      scheduleItem.executedAt ||
+      scheduleItem.publishTime ||
       scheduleItem.scheduledAt ||
       fallbackContent.scheduledAt,
     contentType: scheduleItem.contentType || fallbackContent.contentType,
@@ -302,7 +318,7 @@ const ScheduleInfo = ({ updatedAt, scheduledAt }) => (
   <div className="mt-[8px] space-y-[18px] px-[4px]">
     <div>
       <p className="text-[12px] font-semibold leading-[18px] text-[#7E858C]">
-        최근 수정일
+        생성일자
       </p>
       <p className="mt-[6px] text-[18px] font-bold leading-[27px] text-[#20242A]">
         {formatDate(updatedAt)}
@@ -430,10 +446,28 @@ const ClearPage = () => {
           });
         }
 
+        const promotionIdForSchedule =
+          preview.promotionId ||
+          matchedSchedule?.promotionId ||
+          location.state?.promotionId;
+        const promotionDetail = promotionIdForSchedule
+          ? await getPromotionDetail(promotionIdForSchedule).catch(() => null)
+          : null;
+        const publishTime = getUpcomingPublishTime(
+          promotionDetail?.schedules || [],
+        );
+
         setContent((prev) =>
           toScheduledContent(
             matchedSchedule,
-            toPreviewContent(preview, prev, previewContentId)
+            toPreviewContent(
+              preview,
+              {
+                ...prev,
+                scheduledAt: publishTime || prev.scheduledAt,
+              },
+              previewContentId,
+            )
           )
         );
       } catch (error) {
@@ -498,9 +532,11 @@ const ClearPage = () => {
                 alt=""
               />
               <p className="text-[14px] font-semibold leading-[24px] text-[#000000]">
-                {isVideo
+                {isVideo && hasScheduleInfo
                   ? `${scheduledTime}에 YouTube에 자동 업로드 될 예정입니다`
-                  : "지금 바로 블로그에 붙여넣고 생성해주세요!"}
+                  : isVideo
+                    ? "YouTube에 자동 업로드 될 예정입니다"
+                    : "지금 바로 블로그에 붙여넣고 생성해주세요!"}
               </p>
             </div>
           </>

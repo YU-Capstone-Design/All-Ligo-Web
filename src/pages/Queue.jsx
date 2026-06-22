@@ -123,6 +123,8 @@ const toQueueItem = (item) => ({
   contentType: item.contentType,
   title: item.promotionTitle || "게시글 제목",
   tone: getQueueTone(item.status),
+  publishTime: item.publishTime,
+  scheduledAt: item.scheduledAt,
   executedAt: item.executedAt,
   clickable: !!item.clickable,
 });
@@ -236,7 +238,8 @@ const Queue = () => {
                       contentType: item.contentType,
                       title: item.title,
                       createdAt: item.executedAt,
-                      scheduledAt: item.executedAt,
+                      scheduledAt:
+                        item.publishTime || item.scheduledAt || item.executedAt,
                       executionId: item.id,
                       promotionId: item.promotionId,
                     },
