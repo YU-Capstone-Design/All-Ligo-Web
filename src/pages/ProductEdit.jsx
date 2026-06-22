@@ -15,6 +15,7 @@ import TimeModal from "../components/make/TimeModal";
 import WeekdaySelector from "../components/make/WeekdaySelector";
 import AuthButton from "../components/auth/AuthButton";
 import {
+  deletePromotion,
   getPromotionDetail,
   getPromotionPresignedUrl,
   updatePromotion,
@@ -117,6 +118,7 @@ const ProductEdit = () => {
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
   const [errorMessage, setErrorMessage] = useState("");
   const fileInputRef = useRef(null);
 
@@ -280,6 +282,28 @@ const ProductEdit = () => {
               "홍보 수정 요청에 실패했어요. 잠시 후 다시 시도해주세요."
       );
       setIsSubmitting(false);
+    }
+  };
+
+  const handleDeletePromotion = async () => {
+    if (isDeleting) return;
+
+    try {
+      setIsDeleting(true);
+      setErrorMessage("");
+      await deletePromotion(productId);
+      navigate("/product", { replace: true });
+    } catch (error) {
+      setErrorMessage(
+        error.response?.status === 401
+          ? "로그인이 만료되었어요. 다시 로그인 후 시도해주세요."
+          : error.response?.status === 404
+            ? "이미 삭제되었거나 찾을 수 없는 홍보 요청이에요."
+            : error.response?.data?.message ||
+                "홍보 요청 삭제에 실패했어요. 잠시 후 다시 시도해주세요."
+      );
+      setIsDeleteModalOpen(false);
+      setIsDeleting(false);
     }
   };
 
@@ -655,10 +679,11 @@ const ProductEdit = () => {
               </span>
               <button
                 type="button"
-                onClick={() => navigate("/product")}
-                className="mt-[24px] flex h-[67px] w-full items-center justify-center rounded-[15px] bg-[#FFE8ED] px-[55px] py-[8px] text-[18px] font-normal leading-[32px] text-[#DF0024]"
+                onClick={handleDeletePromotion}
+                disabled={isDeleting}
+                className="mt-[24px] flex h-[67px] w-full items-center justify-center rounded-[15px] bg-[#FFE8ED] px-[55px] py-[8px] text-[18px] font-normal leading-[32px] text-[#DF0024] disabled:opacity-60"
               >
-                삭제하기
+                {isDeleting ? "삭제 중..." : "삭제하기"}
               </button>
             </div>
           </div>
