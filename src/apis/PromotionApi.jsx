@@ -53,6 +53,10 @@ export const updatePromotion = async ({ promotionId, promotionForm }) => {
   return response.data
 }
 
+export const deletePromotion = async (promotionId) => {
+  await api.delete(`/api/v1/promotions/${promotionId}`)
+}
+
 export const cancelContent = async (contentId) => {
   const response = await api.patch(`/api/v1/contents/${contentId}/cancel`)
 
