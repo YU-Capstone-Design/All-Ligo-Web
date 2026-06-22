@@ -87,11 +87,21 @@ const QueueCard = ({ item, onClick }) => {
   );
 };
 
-const getQueueTone = (status) => {
-  if (status === "SUCCESS") return "ready";
-  if (status === "PROCESSING") return "progress";
-  if (status === "FAILED") return "failed";
-  if (status === "PUBLISHED") return "published";
+const getQueueTone = (status, statusLabel) => {
+  if (
+    status === "SUCCESS" ||
+    status === "GENERATED" ||
+    statusLabel === "생성 완료"
+  ) {
+    return "ready";
+  }
+
+  if (status === "PUBLISHED" || statusLabel === "업로드 완료") {
+    return "published";
+  }
+
+  if (status === "PROCESSING" || statusLabel === "생성중") return "progress";
+  if (status === "FAILED" || statusLabel === "실패") return "failed";
 
   return "waiting";
 };
@@ -100,8 +110,10 @@ const statusLabelMap = {
   PENDING: "대기중",
   PROCESSING: "생성중",
   SUCCESS: "생성 완료",
+  GENERATED: "생성 완료",
   FAILED: "실패",
   PUBLISHED: "업로드 완료",
+  CANCELLED: "삭제됨",
 };
 
 const contentTypeLabelMap = {
@@ -110,12 +122,33 @@ const contentTypeLabelMap = {
   VIDEO: "영상",
 };
 
+const getScheduleDate = (value) => {
+  if (!value) return null;
+
+  const matchedDateTime = String(value).match(
+    /^(\d{4})-(\d{2})-(\d{2})[T\s](\d{2}):(\d{2})(?::(\d{2}))?/,
+  );
+  const date = matchedDateTime
+    ? new Date(
+        Number(matchedDateTime[1]),
+        Number(matchedDateTime[2]) - 1,
+        Number(matchedDateTime[3]),
+        Number(matchedDateTime[4]),
+        Number(matchedDateTime[5]),
+        Number(matchedDateTime[6] || 0),
+        0,
+      )
+    : new Date(value);
+
+  return date && !Number.isNaN(date.getTime()) ? date : null;
+};
+
 const getKoreanDateKey = (value) => {
   if (!value) return "";
 
-  const date = value instanceof Date ? value : new Date(value);
+  const date = value instanceof Date ? value : getScheduleDate(value);
 
-  if (Number.isNaN(date.getTime())) return "";
+  if (!date || Number.isNaN(date.getTime())) return "";
 
   const parts = new Intl.DateTimeFormat("en-CA", {
     timeZone: "Asia/Seoul",
@@ -144,29 +177,42 @@ const getScheduledAt = (item) =>
   item.data?.publishTime ||
   "";
 
-const isTodaySchedule = (item) => {
-  const scheduledAt = getScheduledAt(item);
+const getQueuePublishTime = (item) => getScheduledAt(item) || item.executedAt;
 
-  return !!scheduledAt && getKoreanDateKey(scheduledAt) === getKoreanDateKey(new Date());
+const isTodayFutureSchedule = (item) => {
+  const scheduledAt = getQueuePublishTime(item);
+  const scheduledDate = getScheduleDate(scheduledAt);
+
+  return (
+    !!scheduledDate &&
+    scheduledDate.getTime() > Date.now() &&
+    getKoreanDateKey(scheduledDate) === getKoreanDateKey(new Date())
+  );
 };
 
-const toQueueItem = (item) => ({
-  id: item.executionId,
-  promotionId: item.promotionId,
-  contentId: item.contentId,
-  status: item.statusLabel || statusLabelMap[item.status] || item.status,
-  statusCode: item.status,
-  type:
-    item.contentTypeLabel ||
-    contentTypeLabelMap[item.contentType] ||
-    item.contentType,
-  contentType: item.contentType,
-  title: item.promotionTitle || "게시글 제목",
-  tone: getQueueTone(item.status),
-  scheduledAt: getScheduledAt(item),
-  executedAt: item.executedAt,
-  clickable: !!item.clickable,
-});
+const toQueueItem = (item) => {
+  const statusLabel =
+    item.statusLabel || statusLabelMap[item.status] || item.status;
+
+  return {
+    id: item.executionId,
+    promotionId: item.promotionId,
+    contentId: item.contentId,
+    status: statusLabel,
+    statusCode: item.status,
+    type:
+      item.contentTypeLabel ||
+      contentTypeLabelMap[item.contentType] ||
+      item.contentType,
+    contentType: item.contentType,
+    title: item.promotionTitle || "게시글 제목",
+    tone: getQueueTone(item.status, statusLabel),
+    publishTime: getQueuePublishTime(item),
+    scheduledAt: getScheduledAt(item),
+    executedAt: item.executedAt,
+    clickable: !!item.clickable,
+  };
+};
 
 const Queue = () => {
   const navigate = useNavigate();
@@ -188,7 +234,7 @@ const Queue = () => {
         const response = await getPromotionScheduleQueue();
         setQueueItems(
           Array.isArray(response)
-            ? response.filter(isTodaySchedule).map(toQueueItem)
+            ? response.filter(isTodayFutureSchedule).map(toQueueItem)
             : [],
         );
       } catch (error) {
@@ -281,7 +327,7 @@ const Queue = () => {
                       contentType: item.contentType,
                       title: item.title,
                       createdAt: item.executedAt,
-                      scheduledAt: item.scheduledAt || item.executedAt,
+                      scheduledAt: item.publishTime,
                       executionId: item.id,
                       promotionId: item.promotionId,
                     },

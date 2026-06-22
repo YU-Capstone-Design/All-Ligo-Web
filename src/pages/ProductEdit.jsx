@@ -57,9 +57,8 @@ const toDateTimeValue = (date) => {
   )}T${pad(date.getHours())}:${pad(date.getMinutes())}:00`;
 };
 
-const getNextPublishTime = ({ day, hour, minute }) => {
+const getNextPublishTime = ({ day, hour, minute, deadlineDate }) => {
   const now = new Date();
-  const minPublishDate = new Date(now.getTime() + 60 * 60 * 1000);
   const targetDayIndex = Object.keys(dayOfWeekMap).indexOf(day);
   const todayIndex = (now.getDay() + 6) % 7;
   const nextDate = new Date(now);
@@ -70,8 +69,12 @@ const getNextPublishTime = ({ day, hour, minute }) => {
   nextDate.setDate(now.getDate() + diff);
   nextDate.setHours(hour, minute, 0, 0);
 
-  if (nextDate <= minPublishDate) {
+  if (nextDate <= now) {
     nextDate.setDate(nextDate.getDate() + 7);
+  }
+
+  if (deadlineDate && nextDate > deadlineDate) {
+    throw new Error("업로드 시간이 반복 마감 날짜를 넘을 수 없어요.");
   }
 
   return toDateTimeValue(nextDate);
@@ -212,6 +215,26 @@ const ProductEdit = () => {
         deadlineDate.setHours(23, 59, 0, 0);
       }
 
+      const nextSchedules = schedules.map((schedule) => {
+        const publishTime =
+          schedule.publishTime ||
+          getNextPublishTime({
+            day: schedule.day,
+            hour: schedule.hour,
+            minute: schedule.minute,
+            deadlineDate,
+          });
+
+        if (deadlineDate && new Date(publishTime) > deadlineDate) {
+          throw new Error("업로드 시간이 반복 마감 날짜를 넘을 수 없어요.");
+        }
+
+        return {
+          dayOfWeek: dayOfWeekMap[schedule.day],
+          publishTime,
+        };
+      });
+
       const imageUrls = await Promise.all(
         contentImages.map(async (image) => {
           if (!image.file) return image.url;
@@ -243,16 +266,7 @@ const ProductEdit = () => {
           deadline: toDateTimeValue(deadlineDate),
           imageUrls: imageUrls.filter(Boolean),
           tags: hashTags,
-          schedules: schedules.map((schedule) => ({
-            dayOfWeek: dayOfWeekMap[schedule.day],
-            publishTime:
-              schedule.publishTime ||
-              getNextPublishTime({
-                day: schedule.day,
-                hour: schedule.hour,
-                minute: schedule.minute,
-              }),
-          })),
+          schedules: nextSchedules,
         },
       });
 
@@ -262,6 +276,7 @@ const ProductEdit = () => {
         error.response?.status === 401
           ? "로그인이 만료되었어요. 다시 로그인 후 시도해주세요."
           : error.response?.data?.message ||
+              error.message ||
               "홍보 수정 요청에 실패했어요. 잠시 후 다시 시도해주세요."
       );
       setIsSubmitting(false);
@@ -547,9 +562,9 @@ const ProductEdit = () => {
           <div className="flex items-center gap-[14px] rounded-[20px] bg-[#e8f3ff] px-[12px] py-[12px]">
             <img src={erroroutline} alt="안내" />
             <span className="text-[14px] leading-[24px] text-[#424950]">
-              해당 게시글 생성은 1-2시간이 소요되므로 현재 시간부터
+              설정하신 요일과 시간에 맞추어
               <br />
-              1시간 뒤 시간부터 설정 가능합니다.
+              자동 업로드를 진행해요.
             </span>
           </div>
 

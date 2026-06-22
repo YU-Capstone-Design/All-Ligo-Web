@@ -72,6 +72,7 @@ const Upload = ({ onCreate }) => {
         error.response?.status === 401
           ? '로그인이 만료되었어요. 다시 로그인 후 시도해주세요.'
           : error.response?.data?.message ||
+              error.message ||
               '홍보물 생성 요청에 실패했어요. 잠시 후 다시 시도해주세요.',
       )
       setIsSubmitting(false)
@@ -93,9 +94,9 @@ const Upload = ({ onCreate }) => {
           <div className="mt-[24px] flex items-center gap-[14px] rounded-[20px] bg-[#e8f3ff] px-[12px] py-[12px]">
             <img src={erroroutline} alt="안내" />
             <span className="text-[14px] leading-[24px] text-[#424950]">
-              해당 게시글 생성은 1-2시간이 소요되므로 현재 시간부터
+              설정하신 요일과 시간에 맞추어
               <br />
-              1시간 뒤 시간부터 설정 가능합니다.
+              자동 업로드를 진행해요.
             </span>
           </div>
 

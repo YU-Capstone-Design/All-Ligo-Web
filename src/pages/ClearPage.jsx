@@ -42,7 +42,20 @@ const getValidDate = (value) => {
 const getScheduleDate = (value) => {
   if (!value) return null;
 
-  const date = new Date(value);
+  const matchedDateTime = String(value).match(
+    /^(\d{4})-(\d{2})-(\d{2})[T\s](\d{2}):(\d{2})(?::(\d{2}))?/,
+  );
+  const date = matchedDateTime
+    ? new Date(
+        Number(matchedDateTime[1]),
+        Number(matchedDateTime[2]) - 1,
+        Number(matchedDateTime[3]),
+        Number(matchedDateTime[4]),
+        Number(matchedDateTime[5]),
+        Number(matchedDateTime[6] || 0),
+        0,
+      )
+    : new Date(value);
 
   return date && !Number.isNaN(date.getTime()) ? date : null;
 };
@@ -149,6 +162,24 @@ const findScheduleItem = (scheduleItems, preview, contentId) =>
         isSameId(item.executionId, preview.executionId))
   );
 
+const getUpcomingPublishTime = (schedules = []) =>
+  schedules
+    .map(getScheduledAtValue)
+    .filter((publishTime) => isFutureDate(publishTime))
+    .sort(
+      (first, second) =>
+        getScheduleDate(first).getTime() - getScheduleDate(second).getTime(),
+    )[0] || "";
+
+const getLatestPublishTime = (schedules = []) =>
+  schedules
+    .map(getScheduledAtValue)
+    .filter((publishTime) => getScheduleDate(publishTime))
+    .sort(
+      (first, second) =>
+        getScheduleDate(second).getTime() - getScheduleDate(first).getTime(),
+    )[0] || "";
+
 const getSavedContent = (fallbackContent = {}) => ({
   ...initialContent,
   contentId: fallbackContent.contentId || initialContent.contentId,
@@ -252,6 +283,26 @@ const isFutureDate = (value) => {
   return date ? date.getTime() > Date.now() : false;
 };
 
+const isVideoContentType = (value) =>
+  value === "VIDEO" || value === "영상" || value === "쇼츠";
+
+const isExpiredVideoPreview = (content, preview, scheduledAt) => {
+  if (
+    !isVideoContentType(content.contentType) &&
+    !isVideoContentType(preview.contentType)
+  ) {
+    return false;
+  }
+
+  const status = preview.status || preview.contentStatus || content.status;
+
+  if (status === "PUBLISHED" || status === "CANCELLED") {
+    return true;
+  }
+
+  return Boolean(scheduledAt) && !isFutureDate(scheduledAt);
+};
+
 const copyText = async (value) => {
   if (navigator.clipboard?.writeText) {
     await navigator.clipboard.writeText(value);
@@ -325,7 +376,7 @@ const ScheduleInfo = ({ updatedAt, scheduledAt }) => (
   <div className="mt-[8px] space-y-[18px] px-[4px]">
     <div>
       <p className="text-[12px] font-semibold leading-[18px] text-[#7E858C]">
-        최근 수정일
+        생성일자
       </p>
       <p className="mt-[6px] text-[18px] font-bold leading-[27px] text-[#20242A]">
         {formatDate(updatedAt)}
@@ -365,7 +416,7 @@ const ClearPage = () => {
       contentId: productId,
       title: location.state?.title,
       updatedAt: location.state?.createdAt,
-      scheduledAt: location.state?.scheduledAt || location.state?.executedAt,
+      scheduledAt: location.state?.scheduledAt,
       contentType,
       executionId: location.state?.executionId,
       promotionId: location.state?.promotionId,
@@ -453,34 +504,58 @@ const ClearPage = () => {
           });
         }
 
+        const promotionIdForSchedule =
+          preview.promotionId ||
+          matchedSchedule?.promotionId ||
+          location.state?.promotionId;
+        const promotionDetail = promotionIdForSchedule
+          ? await getPromotionDetail(promotionIdForSchedule).catch(() => null)
+          : null;
+        const promotionSchedules = promotionDetail?.schedules || [];
+        const upcomingPublishTime = getUpcomingPublishTime(promotionSchedules);
+        const latestPublishTime = getLatestPublishTime(promotionSchedules);
         const scheduleFallbackTime =
           getScheduledAtValue(matchedSchedule) ||
           getScheduledAtValue(preview) ||
           location.state?.scheduledAt ||
           "";
-        const promotionId =
-          preview.promotionId ||
-          matchedSchedule?.promotionId ||
-          location.state?.promotionId;
-        const promotionScheduledAt = scheduleFallbackTime
-          ? ""
-          : await getPromotionDetail(promotionId)
-              .then(getNextPromotionScheduleTime)
-              .catch(() => "");
-
-        setContent((prev) =>
-          toScheduledContent(
-            matchedSchedule,
-            toPreviewContent(
-              preview,
-              {
-                ...prev,
-                scheduledAt: scheduleFallbackTime || promotionScheduledAt,
-              },
-              previewContentId
-            )
+        const resolvedScheduleTime =
+          scheduleFallbackTime ||
+          upcomingPublishTime ||
+          latestPublishTime ||
+          getNextPromotionScheduleTime(promotionDetail);
+        const fallbackContent = getSavedContent({
+          contentId: productId,
+          title: location.state?.title,
+          updatedAt: location.state?.createdAt,
+          scheduledAt: location.state?.scheduledAt,
+          contentType,
+          executionId: location.state?.executionId,
+          promotionId: location.state?.promotionId,
+        });
+        const nextContent = toScheduledContent(
+          matchedSchedule,
+          toPreviewContent(
+            preview,
+            {
+              ...fallbackContent,
+              scheduledAt: resolvedScheduleTime || fallbackContent.scheduledAt,
+            },
+            previewContentId,
           )
         );
+
+        setContent(nextContent);
+
+        if (
+          isExpiredVideoPreview(
+            nextContent,
+            preview,
+            nextContent.scheduledAt,
+          )
+        ) {
+          setErrorMessage("이미 배포되거나 삭제된 콘텐츠에요.");
+        }
       } catch (error) {
         setErrorMessage(getPreviewErrorMessage(error));
       } finally {
@@ -489,7 +564,7 @@ const ClearPage = () => {
     };
 
     fetchContentPreview();
-  }, [location.state, navigate, productId]);
+  }, [contentType, location.state, navigate, productId]);
 
   const deleteQueueItem = async () => {
     if (isDeleting) return;
@@ -543,9 +618,11 @@ const ClearPage = () => {
                 alt=""
               />
               <p className="text-[14px] font-semibold leading-[24px] text-[#000000]">
-                {isVideo
+                {isVideo && hasScheduleInfo
                   ? `${scheduledTime}에 YouTube에 자동 업로드 될 예정입니다`
-                  : "지금 바로 블로그에 붙여넣고 생성해주세요!"}
+                  : isVideo
+                    ? "YouTube에 자동 업로드 될 예정입니다"
+                    : "지금 바로 블로그에 붙여넣고 생성해주세요!"}
               </p>
             </div>
           </>
