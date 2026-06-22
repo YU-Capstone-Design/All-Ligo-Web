@@ -7,6 +7,7 @@ import sparkleBlueIcon from "../assets/queue/star.png";
 import {
   cancelContent,
   getContentPreview,
+  getPromotionDetail,
   getPromotionScheduleQueue,
 } from "../apis/PromotionApi";
 
@@ -107,6 +108,38 @@ const getItemContentStatus = (item) => item?.contentStatus;
 const isPreviewableScheduleItem = (item) =>
   !getItemContentStatus(item) || getItemContentStatus(item) === "GENERATED";
 
+const getScheduledAtValue = (item) =>
+  item?.scheduledAt ||
+  item?.publishTime ||
+  item?.uploadTime ||
+  item?.scheduledUploadTime ||
+  item?.uploadScheduledAt ||
+  item?.schedule?.publishTime ||
+  item?.schedule?.scheduledAt ||
+  item?.schedule?.uploadTime ||
+  item?.content?.scheduledAt ||
+  item?.content?.publishTime ||
+  item?.payload?.scheduledAt ||
+  item?.payload?.publishTime ||
+  item?.data?.scheduledAt ||
+  item?.data?.publishTime ||
+  "";
+
+const getNextPromotionScheduleTime = (promotion) => {
+  const schedules = Array.isArray(promotion?.schedules)
+    ? promotion.schedules
+    : [];
+  const now = Date.now();
+
+  const futureSchedules = schedules
+    .map((schedule) => getScheduledAtValue(schedule))
+    .filter(Boolean)
+    .sort((first, second) => new Date(first).getTime() - new Date(second).getTime())
+    .filter((value) => new Date(value).getTime() > now);
+
+  return futureSchedules[0] || getScheduledAtValue(schedules[0]) || "";
+};
+
 const findScheduleItem = (scheduleItems, preview, contentId) =>
   scheduleItems.find(
     (item) =>
@@ -162,14 +195,7 @@ const toPreviewContent = (
     preview.uploadVideoUrl ||
     fallbackContent.url,
   updatedAt: preview.uploadedAt || preview.createdAt || fallbackContent.updatedAt,
-  scheduledAt:
-    preview.scheduledAt ||
-    preview.executedAt ||
-    preview.publishTime ||
-    preview.schedule?.publishTime ||
-    preview.schedule?.scheduledAt ||
-    preview.schedule?.executedAt ||
-    fallbackContent.scheduledAt,
+  scheduledAt: getScheduledAtValue(preview) || fallbackContent.scheduledAt,
   contentType: preview.contentType || fallbackContent.contentType,
   contentTypeLabel:
     preview.contentTypeLabel || fallbackContent.contentTypeLabel,
@@ -193,10 +219,7 @@ const toScheduledContent = (scheduleItem, fallbackContent = initialContent) => {
     contentId: scheduleItem.contentId || fallbackContent.contentId,
     executionId: scheduleItem.executionId || fallbackContent.executionId,
     promotionId: scheduleItem.promotionId || fallbackContent.promotionId,
-    scheduledAt:
-      scheduleItem.executedAt ||
-      scheduleItem.scheduledAt ||
-      fallbackContent.scheduledAt,
+    scheduledAt: getScheduledAtValue(scheduleItem) || fallbackContent.scheduledAt,
     contentType: scheduleItem.contentType || fallbackContent.contentType,
     contentTypeLabel:
       scheduleItem.contentTypeLabel || fallbackContent.contentTypeLabel,
@@ -430,10 +453,32 @@ const ClearPage = () => {
           });
         }
 
+        const scheduleFallbackTime =
+          getScheduledAtValue(matchedSchedule) ||
+          getScheduledAtValue(preview) ||
+          location.state?.scheduledAt ||
+          "";
+        const promotionId =
+          preview.promotionId ||
+          matchedSchedule?.promotionId ||
+          location.state?.promotionId;
+        const promotionScheduledAt = scheduleFallbackTime
+          ? ""
+          : await getPromotionDetail(promotionId)
+              .then(getNextPromotionScheduleTime)
+              .catch(() => "");
+
         setContent((prev) =>
           toScheduledContent(
             matchedSchedule,
-            toPreviewContent(preview, prev, previewContentId)
+            toPreviewContent(
+              preview,
+              {
+                ...prev,
+                scheduledAt: scheduleFallbackTime || promotionScheduledAt,
+              },
+              previewContentId
+            )
           )
         );
       } catch (error) {

@@ -9,8 +9,10 @@ import {
   getRegionCouponStores,
 } from "../apis/GuestCouponApi";
 
+const NEARBY_CATEGORY = "거리순";
+
 const categories = [
-  "전체",
+  NEARBY_CATEGORY,
   "서울",
   "인천",
   "경기",
@@ -124,7 +126,7 @@ const GuestStoreCard = ({ store, onClick }) => {
 
 const Guest = () => {
   const navigate = useNavigate();
-  const [selectedCategory, setSelectedCategory] = useState("전체");
+  const [selectedCategory, setSelectedCategory] = useState(NEARBY_CATEGORY);
   const [isCategoryOpen, setIsCategoryOpen] = useState(false);
   const [currentLocation, setCurrentLocation] = useState(null);
   const [stores, setStores] = useState([]);
@@ -133,6 +135,10 @@ const Guest = () => {
   const [isLocationPromptOpen, setIsLocationPromptOpen] = useState(false);
   const [locationPermissionState, setLocationPermissionState] =
     useState("prompt");
+  const displayedCategories = [
+    selectedCategory,
+    ...categories.filter((category) => category !== selectedCategory),
+  ];
 
   const loadNearbyStores = useCallback(async (location) => {
     setIsLoading(true);
@@ -236,7 +242,7 @@ const Guest = () => {
       setIsLoading(true);
       setErrorMessage("");
 
-      if (category === "전체") {
+      if (category === NEARBY_CATEGORY) {
         if (!currentLocation) {
           setIsLocationPromptOpen(true);
           setStores([]);
@@ -297,7 +303,7 @@ const Guest = () => {
         <button
           type="button"
           onClick={() => setIsCategoryOpen((isOpen) => !isOpen)}
-          className={`flex h-[45px] w-[80px] items-center justify-center gap-[4px] border border-[#E9E9EC] px-[8px] text-[16px] font-normal leading-[31px] text-[#62676D] ${
+          className={`flex h-[45px] w-[102px] items-center justify-center gap-[4px] border border-[#E9E9EC] px-[8px] text-[16px] font-normal leading-[31px] text-[#62676D] ${
             isCategoryOpen
               ? "rounded-[16px] bg-transparent shadow-none"
               : "rounded-[45.652px] bg-white shadow-[0_0_12px_rgba(0,0,0,0.04)]"
@@ -311,8 +317,8 @@ const Guest = () => {
         </button>
 
         {isCategoryOpen && (
-          <div className="no-scrollbar absolute right-0 top-0 z-20 flex max-h-[360px] w-[80px] flex-col items-center gap-[4px] overflow-y-auto rounded-[16px] border border-[#E9E9EC] bg-white/70 px-[8px] py-[4px] text-[16px] font-normal leading-[31px] text-[#62676D] shadow-[0_0_12px_rgba(0,0,0,0.15)] backdrop-blur-[4px]">
-            {categories.map((category, index) => (
+          <div className="no-scrollbar absolute right-0 top-0 z-20 flex max-h-[360px] w-[102px] flex-col items-center gap-[4px] overflow-y-auto rounded-[16px] border border-[#E9E9EC] bg-white/70 px-[8px] py-[4px] text-[16px] font-normal leading-[31px] text-[#62676D] shadow-[0_0_12px_rgba(0,0,0,0.15)] backdrop-blur-[4px]">
+            {displayedCategories.map((category, index) => (
               <div key={category} className="flex w-full flex-col items-center">
                 <button
                   type="button"
@@ -325,7 +331,7 @@ const Guest = () => {
                   )}
                 </button>
 
-                {index < categories.length - 1 && (
+                {index < displayedCategories.length - 1 && (
                   <div className="h-px w-full bg-[#E2E7ED]" />
                 )}
               </div>

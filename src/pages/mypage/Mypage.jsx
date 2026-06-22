@@ -94,7 +94,7 @@ const MyPage = () => {
   const handleLogout = () => {
     logout();
     setIsSettingsOpen(false);
-    navigate("/splash");
+    navigate("/splash", { replace: true });
   };
 
   useEffect(() => {
@@ -229,10 +229,10 @@ const MyPage = () => {
               <button
                 type="button"
                 onClick={handleLogout}
-                className="flex h-full w-full items-center gap-[10px] text-[16px] font-semibold text-[#3A3A3A]"
+                className="flex h-full w-full items-center gap-[10px] text-[16px] font-semibold leading-none text-[#3A3A3A]"
               >
-                <MdOutlineLogout className="text-[21px] translate-y-[-2px]" />
-                로그아웃
+                <MdOutlineLogout className="shrink-0 text-[21px]" />
+                <span>로그아웃</span>
               </button>
             </div>
           )}
@@ -287,15 +287,15 @@ const MyPage = () => {
         <button
           type="button"
           onClick={() => navigate("/mypage/coupons/new")}
-          className="mt-[12px] flex h-[48px] w-full items-center justify-center gap-[8px] rounded-[20px] bg-[#2272EB] text-[16px] font-bold text-white"
+          className="mt-[12px] inline-flex h-[48px] w-full items-center justify-center gap-[8px] rounded-[20px] bg-[#2272EB] text-center text-[16px] font-bold leading-none text-white"
         >
-          <span className="flex items-center justify-center text-[16px] font-bold leading-none">
+          <span className="flex h-[27px] w-[27px] shrink-0 items-center justify-center">
             <CiCirclePlus
-              className="w-[27px] h-[27px] stroke-[0.8] stroke-current -translate-y-[2px]"
+              className="h-[27px] w-[27px] stroke-[0.8] stroke-current"
               style={{ strokeWidth: "0.8px" }}
             />
           </span>
-          쿠폰 등록하기
+          <span className="text-center">쿠폰 등록하기</span>
         </button>
 
         {couponError && (

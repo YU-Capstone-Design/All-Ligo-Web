@@ -4,6 +4,10 @@ import noicon from '../../assets/auth/noicon.svg'
 import HashTagModal from './HashTagModal'
 import AuthButton from '../auth/AuthButton'
 
+const PROMPT_MAX_LENGTH = 200
+const TITLE_MIN_LENGTH = 3
+const TITLE_MAX_LENGTH = 20
+
 const Keyword = ({
   title,
   onTitleChange,
@@ -18,10 +22,15 @@ const Keyword = ({
   onNext,
 }) => {
   const [isHashTagModalOpen, setIsHashTagModalOpen] = useState(false)
+  const [titleError, setTitleError] = useState('')
 
   const moodTags = ['따뜻함', '차분함', '밝음']
 
-  const isNextActive = title?.trim().length > 0 && selectedMood && hashTags.length > 0
+  const trimmedTitleLength = title?.trim().length || 0
+  const isTitleValid =
+    trimmedTitleLength >= TITLE_MIN_LENGTH &&
+    trimmedTitleLength <= TITLE_MAX_LENGTH
+  const isNextActive = !!selectedMood
 
   const moodCommonBtnStyle =
     'text-[20px] leading-[33px] border rounded-[10px] py-[8px] px-[12px] w-[118.04px] h-[49px]'
@@ -36,7 +45,7 @@ const Keyword = ({
     'border-[#3182f6] bg-[#3182f6] text-white'
 
   const handlePromptChange = (e) => {
-    setPrompt(e.target.value)
+    setPrompt(e.target.value.slice(0, PROMPT_MAX_LENGTH))
 
     const maxHeight = 396
 
@@ -46,6 +55,20 @@ const Keyword = ({
 
   const handleAddHashTag = (newHashTag) => {
     setHashTags((prev) => [...prev, newHashTag])
+  }
+
+  const handleTitleChange = (event) => {
+    if (titleError) setTitleError('')
+    onTitleChange(event)
+  }
+
+  const handleNextClick = () => {
+    if (!isTitleValid) {
+      setTitleError('제목은 3~20글자로 입력해주세요.')
+      return
+    }
+
+    onNext()
   }
 
   const handleRemoveHashTag = (removeIndex) => {
@@ -72,10 +95,18 @@ const Keyword = ({
 
           <input
             value={title}
-            onChange={onTitleChange}
-            placeholder="ex) 우리가게 레모네이드 광고"
-            className="w-full h-[69px] rounded-[10px] bg-[#f6f6f8] px-[12px] text-[16px] leading-[24px] text-black placeholder:text-[#b0b8c1] outline-none"
+            onChange={handleTitleChange}
+            placeholder="ex) 우리동네 레몬가게 (3~20글자)"
+            className={`w-full h-[69px] rounded-[10px] bg-[#f6f6f8] px-[12px] text-[16px] leading-[24px] text-black placeholder:text-[#b0b8c1] outline-none ${
+              titleError ? 'border border-[#ED0404]' : ''
+            }`}
           />
+
+          {titleError && (
+            <p className="px-[4px] text-[14px] leading-[21px] text-[#ED0404]">
+              {titleError}
+            </p>
+          )}
         </div>
 
         {/* 날씨 정보 */}
@@ -173,7 +204,8 @@ const Keyword = ({
             <textarea
               value={prompt}
               onChange={handlePromptChange}
-              placeholder="AI에게 전할 말을 입력해주세요"
+              placeholder="AI 에게 전할 말을 입력해주세요 (200자 이내)"
+              maxLength={PROMPT_MAX_LENGTH}
               rows={1}
               className="w-full min-h-[33px] max-h-[396px] bg-transparent resize-none overflow-y-auto outline-none text-[16px] leading-[24px] text-black placeholder:text-[#b0b8c1] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
             />
@@ -184,7 +216,7 @@ const Keyword = ({
       <div className="shrink-0 px-[16px] pb-[calc(18px+env(safe-area-inset-bottom))]">
         <AuthButton
           isActive={!!isNextActive}
-          onClick={onNext}
+          onClick={handleNextClick}
         >
           다음
         </AuthButton>

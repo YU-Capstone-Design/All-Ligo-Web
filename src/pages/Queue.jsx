@@ -110,6 +110,46 @@ const contentTypeLabelMap = {
   VIDEO: "영상",
 };
 
+const getKoreanDateKey = (value) => {
+  if (!value) return "";
+
+  const date = value instanceof Date ? value : new Date(value);
+
+  if (Number.isNaN(date.getTime())) return "";
+
+  const parts = new Intl.DateTimeFormat("en-CA", {
+    timeZone: "Asia/Seoul",
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+  }).formatToParts(date);
+
+  const year = parts.find((part) => part.type === "year")?.value;
+  const month = parts.find((part) => part.type === "month")?.value;
+  const day = parts.find((part) => part.type === "day")?.value;
+
+  return year && month && day ? `${year}-${month}-${day}` : "";
+};
+
+const getScheduledAt = (item) =>
+  item.scheduledAt ||
+  item.publishTime ||
+  item.schedule?.publishTime ||
+  item.schedule?.scheduledAt ||
+  item.content?.scheduledAt ||
+  item.content?.publishTime ||
+  item.payload?.scheduledAt ||
+  item.payload?.publishTime ||
+  item.data?.scheduledAt ||
+  item.data?.publishTime ||
+  "";
+
+const isTodaySchedule = (item) => {
+  const scheduledAt = getScheduledAt(item);
+
+  return !!scheduledAt && getKoreanDateKey(scheduledAt) === getKoreanDateKey(new Date());
+};
+
 const toQueueItem = (item) => ({
   id: item.executionId,
   promotionId: item.promotionId,
@@ -123,6 +163,7 @@ const toQueueItem = (item) => ({
   contentType: item.contentType,
   title: item.promotionTitle || "게시글 제목",
   tone: getQueueTone(item.status),
+  scheduledAt: getScheduledAt(item),
   executedAt: item.executedAt,
   clickable: !!item.clickable,
 });
@@ -145,7 +186,11 @@ const Queue = () => {
         setErrorMessage("");
 
         const response = await getPromotionScheduleQueue();
-        setQueueItems(Array.isArray(response) ? response.map(toQueueItem) : []);
+        setQueueItems(
+          Array.isArray(response)
+            ? response.filter(isTodaySchedule).map(toQueueItem)
+            : [],
+        );
       } catch (error) {
         setErrorMessage(
           error.response?.status === 401
@@ -236,7 +281,7 @@ const Queue = () => {
                       contentType: item.contentType,
                       title: item.title,
                       createdAt: item.executedAt,
-                      scheduledAt: item.executedAt,
+                      scheduledAt: item.scheduledAt || item.executedAt,
                       executionId: item.id,
                       promotionId: item.promotionId,
                     },
