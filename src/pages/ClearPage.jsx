@@ -139,6 +139,15 @@ const getUpcomingPublishTime = (schedules = []) =>
         getScheduleDate(first).getTime() - getScheduleDate(second).getTime(),
     )[0] || "";
 
+const getLatestPublishTime = (schedules = []) =>
+  schedules
+    .map((schedule) => schedule.publishTime || schedule.scheduledAt)
+    .filter((publishTime) => getScheduleDate(publishTime))
+    .sort(
+      (first, second) =>
+        getScheduleDate(second).getTime() - getScheduleDate(first).getTime(),
+    )[0] || "";
+
 const getSavedContent = (fallbackContent = {}) => ({
   ...initialContent,
   contentId: fallbackContent.contentId || initialContent.contentId,
@@ -243,6 +252,26 @@ const isFutureDate = (value) => {
   const date = getScheduleDate(value);
 
   return date ? date.getTime() > Date.now() : false;
+};
+
+const isVideoContentType = (value) =>
+  value === "VIDEO" || value === "영상" || value === "쇼츠";
+
+const isExpiredVideoPreview = (content, preview, scheduledAt) => {
+  if (
+    !isVideoContentType(content.contentType) &&
+    !isVideoContentType(preview.contentType)
+  ) {
+    return false;
+  }
+
+  const status = preview.status || preview.contentStatus || content.status;
+
+  if (status === "PUBLISHED" || status === "CANCELLED") {
+    return true;
+  }
+
+  return Boolean(scheduledAt) && !isFutureDate(scheduledAt);
 };
 
 const copyText = async (value) => {
@@ -358,7 +387,7 @@ const ClearPage = () => {
       contentId: productId,
       title: location.state?.title,
       updatedAt: location.state?.createdAt,
-      scheduledAt: location.state?.scheduledAt || location.state?.executedAt,
+      scheduledAt: location.state?.scheduledAt,
       contentType,
       executionId: location.state?.executionId,
       promotionId: location.state?.promotionId,
@@ -453,23 +482,42 @@ const ClearPage = () => {
         const promotionDetail = promotionIdForSchedule
           ? await getPromotionDetail(promotionIdForSchedule).catch(() => null)
           : null;
-        const publishTime = getUpcomingPublishTime(
-          promotionDetail?.schedules || [],
-        );
-
-        setContent((prev) =>
-          toScheduledContent(
-            matchedSchedule,
-            toPreviewContent(
-              preview,
-              {
-                ...prev,
-                scheduledAt: publishTime || prev.scheduledAt,
-              },
-              previewContentId,
-            )
+        const promotionSchedules = promotionDetail?.schedules || [];
+        const upcomingPublishTime = getUpcomingPublishTime(promotionSchedules);
+        const latestPublishTime = getLatestPublishTime(promotionSchedules);
+        const resolvedScheduleTime = upcomingPublishTime || latestPublishTime;
+        const fallbackContent = getSavedContent({
+          contentId: productId,
+          title: location.state?.title,
+          updatedAt: location.state?.createdAt,
+          scheduledAt: location.state?.scheduledAt,
+          contentType,
+          executionId: location.state?.executionId,
+          promotionId: location.state?.promotionId,
+        });
+        const nextContent = toScheduledContent(
+          matchedSchedule,
+          toPreviewContent(
+            preview,
+            {
+              ...fallbackContent,
+              scheduledAt: resolvedScheduleTime || fallbackContent.scheduledAt,
+            },
+            previewContentId,
           )
         );
+
+        setContent(nextContent);
+
+        if (
+          isExpiredVideoPreview(
+            nextContent,
+            preview,
+            nextContent.scheduledAt,
+          )
+        ) {
+          setErrorMessage("이미 배포되거나 삭제된 콘텐츠에요.");
+        }
       } catch (error) {
         setErrorMessage(getPreviewErrorMessage(error));
       } finally {
@@ -478,7 +526,7 @@ const ClearPage = () => {
     };
 
     fetchContentPreview();
-  }, [location.state, navigate, productId]);
+  }, [contentType, location.state, navigate, productId]);
 
   const deleteQueueItem = async () => {
     if (isDeleting) return;

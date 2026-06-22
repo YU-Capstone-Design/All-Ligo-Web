@@ -47,7 +47,7 @@ const formatDateTime = (date) => {
   return `${year}-${month}-${day}T${hour}:${minute}:${second}`
 }
 
-const getNextPublishDate = ({ selectedDay, uploadTime }) => {
+const getNextPublishDate = ({ selectedDay, uploadTime, deadlineDate }) => {
   const now = new Date()
   const publishDate = new Date(now)
   const targetDayIndex = dayIndexMap[selectedDay]
@@ -57,11 +57,13 @@ const getNextPublishDate = ({ selectedDay, uploadTime }) => {
   publishDate.setDate(publishDate.getDate() + dayDiff)
   publishDate.setHours(uploadTime.hour, uploadTime.minute, 0, 0)
 
-  const minimumPublishDate = new Date(now.getTime() + 60 * 60 * 1000)
-
-  if (publishDate <= minimumPublishDate) {
+  if (publishDate <= now) {
     dayDiff += 7
     publishDate.setDate(now.getDate() + dayDiff)
+  }
+
+  if (deadlineDate && publishDate > deadlineDate) {
+    throw new Error('업로드 시간이 반복 마감 날짜를 넘을 수 없어요.')
   }
 
   return publishDate
@@ -88,6 +90,21 @@ const MakePage = () => {
   const navigate = useNavigate()
 
   const handleCreatePromotion = async ({ schedules, selectedEndDate }) => {
+    const deadlineDate = selectedEndDate ? getDeadlineDate(selectedEndDate) : null
+    const publishSchedules = schedules.map((schedule) => ({
+      dayOfWeek: dayOfWeekMap[schedule.day],
+      publishTime: formatDateTime(
+        getNextPublishDate({
+          selectedDay: schedule.day,
+          uploadTime: {
+            hour: schedule.hour,
+            minute: schedule.minute,
+          },
+          deadlineDate,
+        }),
+      ),
+    }))
+
     const uploadedImageUrls = await Promise.all(
       images.map(async ({ file }) => {
         const contentType = file.type || 'image/jpeg'
@@ -115,22 +132,11 @@ const MakePage = () => {
       weatherEnabled: includeWeather,
       mode: selectedMood,
       ...(selectedEndDate && {
-        deadline: formatDateTime(getDeadlineDate(selectedEndDate)),
+        deadline: formatDateTime(deadlineDate),
       }),
       imageUrls: uploadedImageUrls,
       tags: hashTags,
-      schedules: schedules.map((schedule) => ({
-        dayOfWeek: dayOfWeekMap[schedule.day],
-        publishTime: formatDateTime(
-          getNextPublishDate({
-            selectedDay: schedule.day,
-            uploadTime: {
-              hour: schedule.hour,
-              minute: schedule.minute,
-            },
-          }),
-        ),
-      })),
+      schedules: publishSchedules,
     }
 
     await createPromotion(promotionForm)
