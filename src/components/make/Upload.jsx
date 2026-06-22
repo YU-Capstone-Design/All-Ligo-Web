@@ -7,8 +7,10 @@ import Calendar from './Calendar'
 import AuthButton from '../auth/AuthButton'
 import WeekdaySelector from './WeekdaySelector'
 
+const formatMinute = (minute) => String(minute).padStart(2, '0')
+
 const getScheduleLabel = ({ day, hour, minute }) =>
-  `${day}요일 / ${hour}시 ${minute}분`
+  `${day}요일 / ${hour}시 ${formatMinute(minute)}분`
 
 const Upload = ({ onCreate }) => {
   const [view, setView] = useState('list')

@@ -1,10 +1,30 @@
-import React, { useEffect, useMemo, useRef, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import AuthButton from '../auth/AuthButton'
 
 const ITEM_HEIGHT = 36
 const VISIBLE_HEIGHT = 252
 const LOOP_COUNT = 5
 const MIDDLE_LOOP_INDEX = Math.floor(LOOP_COUNT / 2)
+const formatMinute = (minute) => String(minute).padStart(2, '0')
+
+const getMiddleIndexByValue = (list, value) => {
+  const valueIndex = list.indexOf(value)
+
+  if (valueIndex < 0) return 0
+
+  return MIDDLE_LOOP_INDEX * list.length + valueIndex
+}
+
+const scrollToValue = (ref, list, value) => {
+  if (!ref.current) return
+
+  const targetIndex = getMiddleIndexByValue(list, value)
+  ref.current.scrollTop = targetIndex * ITEM_HEIGHT
+}
+
+const normalizeIndex = (index, length) => {
+  return ((index % length) + length) % length
+}
 
 const TimeModal = ({ isOpen, onClose, onConfirm }) => {
   const [selectedHour, setSelectedHour] = useState(7)
@@ -19,7 +39,7 @@ const TimeModal = ({ isOpen, onClose, onConfirm }) => {
   )
 
   const minutes = useMemo(
-    () => Array.from({ length: 59 }, (_, index) => index + 1),
+    () => Array.from({ length: 60 }, (_, index) => index),
     [],
   )
 
@@ -34,25 +54,6 @@ const TimeModal = ({ isOpen, onClose, onConfirm }) => {
   )
 
   const paddingCount = Math.floor(VISIBLE_HEIGHT / ITEM_HEIGHT / 2)
-
-  const getMiddleIndexByValue = (list, value) => {
-    const valueIndex = list.indexOf(value)
-
-    if (valueIndex < 0) return 0
-
-    return MIDDLE_LOOP_INDEX * list.length + valueIndex
-  }
-
-  const scrollToValue = (ref, list, value) => {
-    if (!ref.current) return
-
-    const targetIndex = getMiddleIndexByValue(list, value)
-    ref.current.scrollTop = targetIndex * ITEM_HEIGHT
-  }
-
-  const normalizeIndex = (index, length) => {
-    return ((index % length) + length) % length
-  }
 
   const handleLoopScroll = (ref, list, setValue) => {
     if (!ref.current) return
@@ -169,7 +170,7 @@ const TimeModal = ({ isOpen, onClose, onConfirm }) => {
                           : 'font-normal text-[#B8BEC4]'
                       }`}
                     >
-                      {minute}
+                      {formatMinute(minute)}
                     </button>
                   ))}
 

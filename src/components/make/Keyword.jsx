@@ -4,6 +4,8 @@ import noicon from '../../assets/auth/noicon.svg'
 import HashTagModal from './HashTagModal'
 import AuthButton from '../auth/AuthButton'
 
+const PROMPT_MAX_LENGTH = 200
+
 const Keyword = ({
   title,
   onTitleChange,
@@ -36,7 +38,7 @@ const Keyword = ({
     'border-[#3182f6] bg-[#3182f6] text-white'
 
   const handlePromptChange = (e) => {
-    setPrompt(e.target.value)
+    setPrompt(e.target.value.slice(0, PROMPT_MAX_LENGTH))
 
     const maxHeight = 396
 
@@ -173,7 +175,8 @@ const Keyword = ({
             <textarea
               value={prompt}
               onChange={handlePromptChange}
-              placeholder="AI에게 전할 말을 입력해주세요"
+              placeholder="AI 에게 전할 말을 입력해주세요 (200자 이내)"
+              maxLength={PROMPT_MAX_LENGTH}
               rows={1}
               className="w-full min-h-[33px] max-h-[396px] bg-transparent resize-none overflow-y-auto outline-none text-[16px] leading-[24px] text-black placeholder:text-[#b0b8c1] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
             />
