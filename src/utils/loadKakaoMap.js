@@ -3,6 +3,8 @@ const KAKAO_MAP_SCRIPT_ID = "kakao-map-script";
 let kakaoMapPromise = null;
 
 const getKakaoMapKey = () => import.meta.env.VITE_KAKAO_MAP_KEY;
+const getKakaoMapDebugInfo = (kakaoMapKey) =>
+  `origin=${window.location.origin}, keySuffix=${kakaoMapKey.slice(-6)}`;
 
 const loadKakaoMap = () => {
   const kakaoMapKey = getKakaoMapKey();
@@ -22,13 +24,21 @@ const loadKakaoMap = () => {
   kakaoMapPromise = new Promise((resolve, reject) => {
     const finishLoad = () => {
       if (!window.kakao?.maps) {
-        reject(new Error("Kakao Map SDK loaded without window.kakao.maps"));
+        reject(
+          new Error(
+            `Kakao Map SDK loaded without window.kakao.maps. ${getKakaoMapDebugInfo(kakaoMapKey)}`
+          )
+        );
         return;
       }
 
       window.kakao.maps.load(() => {
         if (!window.kakao?.maps?.Map || !window.kakao.maps.services) {
-          reject(new Error("Kakao Map SDK services library is unavailable"));
+          reject(
+            new Error(
+              `Kakao Map SDK services library is unavailable. ${getKakaoMapDebugInfo(kakaoMapKey)}`
+            )
+          );
           return;
         }
 
@@ -40,7 +50,7 @@ const loadKakaoMap = () => {
       kakaoMapPromise = null;
       reject(
         new Error(
-          `Kakao Map SDK load failed. origin=${window.location.origin}`
+          `Kakao Map SDK load failed. ${getKakaoMapDebugInfo(kakaoMapKey)}`
         )
       );
     };

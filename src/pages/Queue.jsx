@@ -236,6 +236,9 @@ const Queue = () => {
                       contentType: item.contentType,
                       title: item.title,
                       createdAt: item.executedAt,
+                      scheduledAt: item.executedAt,
+                      executionId: item.id,
+                      promotionId: item.promotionId,
                     },
                   });
                 }}
