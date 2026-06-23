@@ -2,6 +2,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import arrowup from "../../assets/arrow-up.svg";
 import AuthButton from "../../components/auth/AuthButton";
+import { normalizeOwnerSignupRegion } from "../../apis/OwnerSignupApi";
 import loadKakaoMap from "../../utils/loadKakaoMap";
 
 import { FiSearch } from "react-icons/fi";
@@ -18,6 +19,7 @@ const getSavedLocation = () => {
   const savedSubtitle = localStorage.getItem("mypageStoreLocationDetail");
   const savedLatitude = Number(localStorage.getItem("mypageStoreLatitude"));
   const savedLongitude = Number(localStorage.getItem("mypageStoreLongitude"));
+  const savedRegion = localStorage.getItem("mypageStoreRegion") || "";
 
   if (
     savedTitle &&
@@ -28,6 +30,7 @@ const getSavedLocation = () => {
       subtitle: savedSubtitle || "",
       lat: savedLatitude,
       lng: savedLongitude,
+      region: savedRegion,
     };
   }
 
@@ -44,6 +47,7 @@ const getInitialLocation = () => {
     subtitle: "경북 경산시 조영동1234-123",
     lat: DEFAULT_CENTER.lat,
     lng: DEFAULT_CENTER.lng,
+    region: "경북",
   };
 };
 
@@ -60,7 +64,7 @@ const MyLocationSetting = () => {
   const [mapError, setMapError] = useState("");
   const [selected, setSelected] = useState(getInitialLocation);
 
-  const setSelectedLocation = useCallback((lat, lng, title, subtitle = "") => {
+  const setSelectedLocation = useCallback((lat, lng, title, subtitle = "", region = "") => {
     const nextTitle = title || `${lat.toFixed(6)}, ${lng.toFixed(6)}`;
 
     setSelected({
@@ -68,6 +72,7 @@ const MyLocationSetting = () => {
       subtitle,
       lat,
       lng,
+      region,
     });
 
     if (!window.kakao?.maps || !mapRef.current || !markerRef.current) {
@@ -94,11 +99,15 @@ const MyLocationSetting = () => {
 
         const roadAddress = result[0].road_address?.address_name;
         const jibunAddress = result[0].address?.address_name;
+        const region = normalizeOwnerSignupRegion(
+          result[0].address?.region_1depth_name ||
+            result[0].road_address?.region_1depth_name,
+        );
         const title =
           roadAddress || jibunAddress || `${lat.toFixed(6)}, ${lng.toFixed(6)}`;
         const subtitle = roadAddress && jibunAddress ? jibunAddress : "";
 
-        setSelectedLocation(lat, lng, title, subtitle);
+        setSelectedLocation(lat, lng, title, subtitle, region);
       });
     },
     [setSelectedLocation]
@@ -137,7 +146,7 @@ const MyLocationSetting = () => {
   };
 
   const selectSearchResult = (place) => {
-    setSelectedLocation(place.lat, place.lng, place.title, place.subtitle);
+    setAddressFromCoords(place.lat, place.lng);
     setSearchText("");
     setSearchResults([]);
     setMapError("");
@@ -151,12 +160,14 @@ const MyLocationSetting = () => {
     localStorage.setItem("mypageStoreLocationDetail", selected.subtitle);
     localStorage.setItem("mypageStoreLatitude", String(selected.lat));
     localStorage.setItem("mypageStoreLongitude", String(selected.lng));
+    localStorage.setItem("mypageStoreRegion", selected.region || "");
     navigate("/mypage/profile", {
       state: {
         selectedLocation: selected.title,
         selectedLocationDetail: selected.subtitle,
         selectedLatitude: selected.lat,
         selectedLongitude: selected.lng,
+        selectedRegion: selected.region,
       },
     });
   };
