@@ -18,6 +18,9 @@ import { FiLink } from "react-icons/fi";
 const getSavedStoreLocation = () =>
   localStorage.getItem("mypageStoreLocation") || "";
 
+const getSavedStoreRegion = () =>
+  localStorage.getItem("mypageStoreRegion") || "";
+
 const getAddressFromCoords = async (latitude, longitude) => {
   const kakao = await loadKakaoMap();
 
@@ -49,6 +52,7 @@ const ProfileEdit = () => {
   const [storeName, setStoreName] = useState("");
   const [storeLink, setStoreLink] = useState("");
   const [storeLocation, setStoreLocation] = useState(getSavedStoreLocation);
+  const [storeRegion, setStoreRegion] = useState(getSavedStoreRegion);
   const [detailAddress, setDetailAddress] = useState("");
   const [latitude, setLatitude] = useState(null);
   const [longitude, setLongitude] = useState(null);
@@ -61,6 +65,7 @@ const ProfileEdit = () => {
     const selectedLocationState = location.state?.selectedLocation;
     const selectedLatitudeState = location.state?.selectedLatitude;
     const selectedLongitudeState = location.state?.selectedLongitude;
+    const selectedRegionState = location.state?.selectedRegion;
     const isReturningFromMap =
       sessionStorage.getItem("returningFromMap") === "true" ||
       Boolean(selectedLocationState);
@@ -79,6 +84,7 @@ const ProfileEdit = () => {
           return;
         }
 
+        setStoreRegion(myPageInfo.region || "");
         setLatitude(myPageInfo.latitude ?? null);
         setLongitude(myPageInfo.longitude ?? null);
 
@@ -124,6 +130,7 @@ const ProfileEdit = () => {
       if (parsed.storeName) setStoreName(parsed.storeName);
       if (parsed.storeLink) setStoreLink(parsed.storeLink);
       if (parsed.storeLocation) setStoreLocation(parsed.storeLocation);
+      if (parsed.storeRegion) setStoreRegion(parsed.storeRegion);
       if (parsed.detailAddress) setDetailAddress(parsed.detailAddress);
       sessionStorage.removeItem("profileEditFormTemp");
     }
@@ -136,6 +143,7 @@ const ProfileEdit = () => {
       if (selectedLongitudeState !== undefined && selectedLongitudeState !== null) {
         setLongitude(Number(selectedLongitudeState));
       }
+      setStoreRegion(selectedRegionState || "");
       sessionStorage.removeItem("returningFromMap");
       return;
     }
@@ -144,11 +152,13 @@ const ProfileEdit = () => {
       const savedLocation = localStorage.getItem("mypageStoreLocation");
       const savedLatitude = localStorage.getItem("mypageStoreLatitude");
       const savedLongitude = localStorage.getItem("mypageStoreLongitude");
+      const savedRegion = localStorage.getItem("mypageStoreRegion");
       if (savedLocation) {
         setStoreLocation(savedLocation);
       }
       if (savedLatitude) setLatitude(Number(savedLatitude));
       if (savedLongitude) setLongitude(Number(savedLongitude));
+      if (savedRegion) setStoreRegion(savedRegion);
       sessionStorage.removeItem("returningFromMap");
     }
 
@@ -162,6 +172,7 @@ const ProfileEdit = () => {
       profileImage,
       latitude,
       longitude,
+      storeRegion,
       storeName,
       storeLink,
       storeLocation,
@@ -236,6 +247,7 @@ const ProfileEdit = () => {
         mapUrl: storeLink.trim(),
         latitude,
         longitude,
+        region: storeRegion,
       });
 
       if (profileImageFile) {
@@ -246,6 +258,7 @@ const ProfileEdit = () => {
       localStorage.setItem("mypageStoreLocation", storeLocation);
       localStorage.setItem("mypageStoreLatitude", String(latitude));
       localStorage.setItem("mypageStoreLongitude", String(longitude));
+      localStorage.setItem("mypageStoreRegion", storeRegion);
       navigate("/mypage");
     } catch (error) {
       setFormError(
