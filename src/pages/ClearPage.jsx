@@ -119,7 +119,9 @@ const isSameId = (first, second) =>
 const getItemContentStatus = (item) => item?.contentStatus;
 
 const isPreviewableScheduleItem = (item) =>
-  !getItemContentStatus(item) || getItemContentStatus(item) === "GENERATED";
+  !getItemContentStatus(item) ||
+  getItemContentStatus(item) === "GENERATED" ||
+  getItemContentStatus(item) === "PUBLISHED";
 
 const getScheduledAtValue = (item) =>
   item?.scheduledAt ||
