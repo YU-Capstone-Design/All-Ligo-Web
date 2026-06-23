@@ -153,14 +153,19 @@ const getNextPromotionScheduleTime = (promotion) => {
   return futureSchedules[0] || getScheduledAtValue(schedules[0]) || "";
 };
 
-const findScheduleItem = (scheduleItems, preview, contentId) =>
-  scheduleItems.find(
-    (item) =>
-      isPreviewableScheduleItem(item) &&
-      (isSameId(item.contentId, preview.contentId || contentId) ||
-        isSameId(item.promotionId, preview.promotionId) ||
-        isSameId(item.executionId, preview.executionId))
+const findScheduleItem = (scheduleItems, preview, contentId) => {
+  const previewableItems = scheduleItems.filter(isPreviewableScheduleItem);
+  const exactContentId = preview.contentId || contentId;
+  const exactExecutionId = preview.executionId;
+
+  return (
+    previewableItems.find((item) => isSameId(item.contentId, exactContentId)) ||
+    previewableItems.find((item) =>
+      isSameId(item.executionId, exactExecutionId),
+    ) ||
+    previewableItems.find((item) => isSameId(item.promotionId, preview.promotionId))
   );
+};
 
 const getUpcomingPublishTime = (schedules = []) =>
   schedules
@@ -226,7 +231,7 @@ const toPreviewContent = (
     preview.uploadVideoUrl ||
     fallbackContent.url,
   updatedAt: preview.uploadedAt || preview.createdAt || fallbackContent.updatedAt,
-  scheduledAt: getScheduledAtValue(preview) || fallbackContent.scheduledAt,
+  scheduledAt: fallbackContent.scheduledAt || getScheduledAtValue(preview),
   contentType: preview.contentType || fallbackContent.contentType,
   contentTypeLabel:
     preview.contentTypeLabel || fallbackContent.contentTypeLabel,
@@ -250,7 +255,7 @@ const toScheduledContent = (scheduleItem, fallbackContent = initialContent) => {
     contentId: scheduleItem.contentId || fallbackContent.contentId,
     executionId: scheduleItem.executionId || fallbackContent.executionId,
     promotionId: scheduleItem.promotionId || fallbackContent.promotionId,
-    scheduledAt: getScheduledAtValue(scheduleItem) || fallbackContent.scheduledAt,
+    scheduledAt: fallbackContent.scheduledAt || getScheduledAtValue(scheduleItem),
     contentType: scheduleItem.contentType || fallbackContent.contentType,
     contentTypeLabel:
       scheduleItem.contentTypeLabel || fallbackContent.contentTypeLabel,
@@ -515,9 +520,9 @@ const ClearPage = () => {
         const upcomingPublishTime = getUpcomingPublishTime(promotionSchedules);
         const latestPublishTime = getLatestPublishTime(promotionSchedules);
         const scheduleFallbackTime =
+          location.state?.scheduledAt ||
           getScheduledAtValue(matchedSchedule) ||
           getScheduledAtValue(preview) ||
-          location.state?.scheduledAt ||
           "";
         const resolvedScheduleTime =
           scheduleFallbackTime ||
