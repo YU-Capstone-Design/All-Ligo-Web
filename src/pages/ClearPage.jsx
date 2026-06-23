@@ -10,6 +10,7 @@ import {
   getPromotionDetail,
   getPromotionScheduleQueue,
 } from "../apis/PromotionApi";
+import { getMyPageInfo } from "../apis/UserApi";
 
 const initialContent = {
   title: "",
@@ -226,8 +227,12 @@ const toPreviewContent = (
       : preview.bodyText || preview.caption || fallbackContent.caption,
   url:
     preview.storeUrl ||
+    preview.mapUrl ||
+    preview.ownerMapUrl ||
     preview.redirectUrl ||
     preview.linkUrl ||
+    preview.store?.mapUrl ||
+    preview.owner?.mapUrl ||
     preview.uploadVideoUrl ||
     fallbackContent.url,
   updatedAt: preview.uploadedAt || preview.createdAt || fallbackContent.updatedAt,
@@ -516,6 +521,12 @@ const ClearPage = () => {
         const promotionDetail = promotionIdForSchedule
           ? await getPromotionDetail(promotionIdForSchedule).catch(() => null)
           : null;
+        const myPageInfo = await getMyPageInfo().catch(() => null);
+        const userMapUrl =
+          myPageInfo?.mapUrl ||
+          myPageInfo?.storeUrl ||
+          myPageInfo?.linkUrl ||
+          "";
         const promotionSchedules = promotionDetail?.schedules || [];
         const upcomingPublishTime = getUpcomingPublishTime(promotionSchedules);
         const latestPublishTime = getLatestPublishTime(promotionSchedules);
@@ -544,6 +555,7 @@ const ClearPage = () => {
             preview,
             {
               ...fallbackContent,
+              url: fallbackContent.url || userMapUrl,
               scheduledAt: resolvedScheduleTime || fallbackContent.scheduledAt,
             },
             previewContentId,
@@ -589,7 +601,7 @@ const ClearPage = () => {
     }
   };
 
-  const connectionUrl = isVideo ? "" : content.url || content.trackUrl;
+  const connectionUrl = content.url || content.trackUrl;
 
   return (
     <div className="no-scrollbar h-[100dvh] overflow-y-auto bg-[#F3F4F6] px-[16px] pb-[calc(24px+env(safe-area-inset-bottom))]">
