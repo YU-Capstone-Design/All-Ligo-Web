@@ -288,7 +288,7 @@ const isFutureDate = (value) => {
 const isVideoContentType = (value) =>
   value === "VIDEO" || value === "영상" || value === "쇼츠";
 
-const isExpiredVideoPreview = (content, preview, scheduledAt) => {
+const isExpiredVideoPreview = (content, preview) => {
   if (
     !isVideoContentType(content.contentType) &&
     !isVideoContentType(preview.contentType)
@@ -298,11 +298,11 @@ const isExpiredVideoPreview = (content, preview, scheduledAt) => {
 
   const status = preview.status || preview.contentStatus || content.status;
 
-  if (status === "PUBLISHED" || status === "CANCELLED") {
+  if (status === "CANCELLED") {
     return true;
   }
 
-  return Boolean(scheduledAt) && !isFutureDate(scheduledAt);
+  return false;
 };
 
 const copyText = async (value) => {
@@ -553,7 +553,6 @@ const ClearPage = () => {
           isExpiredVideoPreview(
             nextContent,
             preview,
-            nextContent.scheduledAt,
           )
         ) {
           setErrorMessage("이미 배포되거나 삭제된 콘텐츠에요.");
