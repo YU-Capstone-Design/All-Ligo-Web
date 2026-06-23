@@ -60,16 +60,24 @@ const Product = () => {
   }, []);
 
   return (
-    <div className="no-scrollbar h-[100dvh] overflow-y-auto bg-[#F3F4F6] px-[22px] pb-[130px]">
-      <header className="flex items-center justify-between py-[7px]">
-        <img className="h-[24.383px] w-[88.685px]" src={appname} alt="All-Ligo" />
+    <div className="no-scrollbar h-[100dvh] overflow-y-auto bg-[#F3F4F6] px-[16px] pb-[130px] pt-[10px]">
+      <header className="flex items-center justify-between">
+        <img
+          className="h-[32px] w-[100px] -translate-y-[2px] object-contain"
+          src={appname}
+          alt="All-Ligo"
+        />
         <button
           type="button"
           onClick={() => navigate("/notifications")}
-          className="flex h-[40px] w-[40px] items-center justify-center"
+          className="text-[24px]"
           aria-label="알림"
         >
-          <img className="h-[28px] w-[28px]" src={bell} alt="" />
+          <img
+            className="h-[32px] w-[32px] -translate-y-[2px] object-contain"
+            src={bell}
+            alt=""
+          />
         </button>
       </header>
 

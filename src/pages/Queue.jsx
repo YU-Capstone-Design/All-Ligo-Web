@@ -255,21 +255,21 @@ const Queue = () => {
   const scheduledCount = queueItems.length;
 
   return (
-    <div className="no-scrollbar h-[100dvh] overflow-y-auto bg-[#F5F6F8] px-[16px] pb-[128px] pt-[18px]">
+    <div className="no-scrollbar h-[100dvh] overflow-y-auto bg-[#F5F6F8] px-[16px] pb-[128px] pt-[10px]">
       <header className="flex items-center justify-between">
         <img
-          className="h-[25px] w-[95px] object-contain"
+          className="h-[32px] w-[100px] -translate-y-[2px] object-contain"
           src={appname}
           alt="All-Ligo"
         />
         <button
           type="button"
           onClick={() => navigate("/notifications")}
-          className="flex h-[40px] w-[40px] items-center justify-center"
+          className="text-[24px]"
           aria-label="알림"
         >
           <img
-            className="h-[28px] w-[28px] object-contain opacity-70"
+            className="h-[32px] w-[32px] -translate-y-[2px] object-contain"
             src={bell}
             alt=""
           />

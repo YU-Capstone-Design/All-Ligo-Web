@@ -50,19 +50,24 @@ const Home = () => {
   }, []);
 
   return (
-    <div className="no-scrollbar h-[100dvh] overflow-y-auto bg-[#F3F4F6] px-[17px] pb-[130px]">
-      <header className="flex py-[7px] items-center justify-between">
+    <div className="no-scrollbar h-[100dvh] overflow-y-auto bg-[#F3F4F6] px-[16px] pb-[130px] pt-[10px]">
+      <header className="flex items-center justify-between">
         <img
-          className="w-[88.685px] h-[24.383px]"
+          className="h-[32px] w-[100px] -translate-y-[2px] object-contain"
           src={appname}
           alt="All-Ligo"
         />
         <button
           type="button"
           onClick={() => navigate("/notifications")}
+          className="text-[24px]"
           aria-label="알림"
         >
-          <img className="w-[28px] h-[28px]" src={bell} alt="" />
+          <img
+            className="h-[32px] w-[32px] -translate-y-[2px] object-contain"
+            src={bell}
+            alt=""
+          />
         </button>
       </header>
 
