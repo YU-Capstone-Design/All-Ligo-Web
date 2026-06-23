@@ -122,48 +122,6 @@ const contentTypeLabelMap = {
   VIDEO: "영상",
 };
 
-const getScheduleDate = (value) => {
-  if (!value) return null;
-
-  const matchedDateTime = String(value).match(
-    /^(\d{4})-(\d{2})-(\d{2})[T\s](\d{2}):(\d{2})(?::(\d{2}))?/,
-  );
-  const date = matchedDateTime
-    ? new Date(
-        Number(matchedDateTime[1]),
-        Number(matchedDateTime[2]) - 1,
-        Number(matchedDateTime[3]),
-        Number(matchedDateTime[4]),
-        Number(matchedDateTime[5]),
-        Number(matchedDateTime[6] || 0),
-        0,
-      )
-    : new Date(value);
-
-  return date && !Number.isNaN(date.getTime()) ? date : null;
-};
-
-const getKoreanDateKey = (value) => {
-  if (!value) return "";
-
-  const date = value instanceof Date ? value : getScheduleDate(value);
-
-  if (!date || Number.isNaN(date.getTime())) return "";
-
-  const parts = new Intl.DateTimeFormat("en-CA", {
-    timeZone: "Asia/Seoul",
-    year: "numeric",
-    month: "2-digit",
-    day: "2-digit",
-  }).formatToParts(date);
-
-  const year = parts.find((part) => part.type === "year")?.value;
-  const month = parts.find((part) => part.type === "month")?.value;
-  const day = parts.find((part) => part.type === "day")?.value;
-
-  return year && month && day ? `${year}-${month}-${day}` : "";
-};
-
 const getScheduledAt = (item) =>
   item.scheduledAt ||
   item.publishTime ||
@@ -178,17 +136,6 @@ const getScheduledAt = (item) =>
   "";
 
 const getQueuePublishTime = (item) => getScheduledAt(item) || item.executedAt;
-
-const isTodayFutureSchedule = (item) => {
-  const scheduledAt = getQueuePublishTime(item);
-  const scheduledDate = getScheduleDate(scheduledAt);
-
-  return (
-    !!scheduledDate &&
-    scheduledDate.getTime() > Date.now() &&
-    getKoreanDateKey(scheduledDate) === getKoreanDateKey(new Date())
-  );
-};
 
 const toQueueItem = (item) => {
   const statusLabel =
@@ -234,7 +181,7 @@ const Queue = () => {
         const response = await getPromotionScheduleQueue();
         setQueueItems(
           Array.isArray(response)
-            ? response.filter(isTodayFutureSchedule).map(toQueueItem)
+            ? response.map(toQueueItem)
             : [],
         );
       } catch (error) {
