@@ -151,7 +151,14 @@ const MyLocationSetting = () => {
     localStorage.setItem("mypageStoreLocationDetail", selected.subtitle);
     localStorage.setItem("mypageStoreLatitude", String(selected.lat));
     localStorage.setItem("mypageStoreLongitude", String(selected.lng));
-    navigate("/mypage/profile");
+    navigate("/mypage/profile", {
+      state: {
+        selectedLocation: selected.title,
+        selectedLocationDetail: selected.subtitle,
+        selectedLatitude: selected.lat,
+        selectedLongitude: selected.lng,
+      },
+    });
   };
 
   useEffect(() => {

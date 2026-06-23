@@ -58,6 +58,12 @@ const ProfileEdit = () => {
 
   useEffect(() => {
     let isMounted = true;
+    const selectedLocationState = location.state?.selectedLocation;
+    const selectedLatitudeState = location.state?.selectedLatitude;
+    const selectedLongitudeState = location.state?.selectedLongitude;
+    const isReturningFromMap =
+      sessionStorage.getItem("returningFromMap") === "true" ||
+      Boolean(selectedLocationState);
 
     const loadMyPageInfo = async () => {
       try {
@@ -68,6 +74,11 @@ const ProfileEdit = () => {
         setProfileImage(myPageInfo.profileImageUrl || null);
         setStoreName(myPageInfo.storeName || "");
         setStoreLink(myPageInfo.mapUrl || "");
+
+        if (isReturningFromMap) {
+          return;
+        }
+
         setLatitude(myPageInfo.latitude ?? null);
         setLongitude(myPageInfo.longitude ?? null);
 
@@ -104,8 +115,12 @@ const ProfileEdit = () => {
     if (savedForm) {
       const parsed = JSON.parse(savedForm);
       if (parsed.profileImage) setProfileImage(parsed.profileImage);
-      if (parsed.latitude) setLatitude(parsed.latitude);
-      if (parsed.longitude) setLongitude(parsed.longitude);
+      if (parsed.latitude !== undefined && parsed.latitude !== null) {
+        setLatitude(parsed.latitude);
+      }
+      if (parsed.longitude !== undefined && parsed.longitude !== null) {
+        setLongitude(parsed.longitude);
+      }
       if (parsed.storeName) setStoreName(parsed.storeName);
       if (parsed.storeLink) setStoreLink(parsed.storeLink);
       if (parsed.storeLocation) setStoreLocation(parsed.storeLocation);
@@ -113,14 +128,19 @@ const ProfileEdit = () => {
       sessionStorage.removeItem("profileEditFormTemp");
     }
 
-    if (location.state?.selectedLocation) {
-      setStoreLocation(location.state.selectedLocation);
+    if (selectedLocationState) {
+      setStoreLocation(selectedLocationState);
+      if (selectedLatitudeState !== undefined && selectedLatitudeState !== null) {
+        setLatitude(Number(selectedLatitudeState));
+      }
+      if (selectedLongitudeState !== undefined && selectedLongitudeState !== null) {
+        setLongitude(Number(selectedLongitudeState));
+      }
       sessionStorage.removeItem("returningFromMap");
       return;
     }
 
-    const isReturningFromMap = sessionStorage.getItem("returningFromMap");
-    if (isReturningFromMap === "true") {
+    if (isReturningFromMap) {
       const savedLocation = localStorage.getItem("mypageStoreLocation");
       const savedLatitude = localStorage.getItem("mypageStoreLatitude");
       const savedLongitude = localStorage.getItem("mypageStoreLongitude");
