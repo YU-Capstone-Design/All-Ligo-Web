@@ -32,10 +32,20 @@ const initialContent = {
 const getValidDate = (value) => {
   if (!value) return null;
 
-  const normalizedValue = /[zZ]|[+-]\d{2}:\d{2}$/.test(value)
-    ? value
-    : `${value}Z`;
-  const date = new Date(normalizedValue);
+  const matchedDateTime = String(value).match(
+    /^(\d{4})-(\d{2})-(\d{2})[T\s](\d{2}):(\d{2})(?::(\d{2}))?$/,
+  );
+  const date = matchedDateTime
+    ? new Date(
+        Number(matchedDateTime[1]),
+        Number(matchedDateTime[2]) - 1,
+        Number(matchedDateTime[3]),
+        Number(matchedDateTime[4]),
+        Number(matchedDateTime[5]),
+        Number(matchedDateTime[6] || 0),
+        0,
+      )
+    : new Date(value);
 
   return date && !Number.isNaN(date.getTime()) ? date : null;
 };
