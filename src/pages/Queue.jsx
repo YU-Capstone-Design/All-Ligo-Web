@@ -87,11 +87,17 @@ const QueueCard = ({ item, onClick }) => {
   );
 };
 
-const getQueueTone = (status, statusLabel) => {
+const isUploadedVideoItem = (item, statusLabel = item.statusLabel) =>
+  item.contentType === "VIDEO" &&
+  (item.status === "PUBLISHED" || statusLabel === "업로드 완료");
+
+const getQueueTone = (status, statusLabel, contentType) => {
   if (
     status === "SUCCESS" ||
     status === "GENERATED" ||
-    statusLabel === "생성 완료"
+    statusLabel === "생성 완료" ||
+    (contentType === "VIDEO" &&
+      (status === "PUBLISHED" || statusLabel === "업로드 완료"))
   ) {
     return "ready";
   }
@@ -138,8 +144,11 @@ const getScheduledAt = (item) =>
 const getQueuePublishTime = (item) => getScheduledAt(item) || item.executedAt;
 
 const toQueueItem = (item) => {
-  const statusLabel =
+  const rawStatusLabel =
     item.statusLabel || statusLabelMap[item.status] || item.status;
+  const statusLabel = isUploadedVideoItem(item, rawStatusLabel)
+    ? "생성 완료"
+    : rawStatusLabel;
 
   return {
     id: item.executionId,
@@ -153,7 +162,7 @@ const toQueueItem = (item) => {
       item.contentType,
     contentType: item.contentType,
     title: item.promotionTitle || "게시글 제목",
-    tone: getQueueTone(item.status, statusLabel),
+    tone: getQueueTone(item.status, statusLabel, item.contentType),
     publishTime: getQueuePublishTime(item),
     scheduledAt: getScheduledAt(item),
     executedAt: item.executedAt,
