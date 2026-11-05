@@ -3,13 +3,6 @@ import { useLocation, useNavigate } from "react-router-dom";
 import arrowup from "../assets/arrow-up.svg";
 import { getStoreCoupons } from "../apis/GuestCouponApi";
 
-const fallbackCoupons = Array.from({ length: 8 }, (_, index) => ({
-  id: index + 1,
-  title: "돼지 국밥 오픈 할인",
-  discount: "20%",
-  type: "할인쿠폰",
-}));
-
 const formatDiscount = (coupon) => {
   if (coupon.discountType === "AMOUNT") {
     return `${Number(coupon.discountNum || 0).toLocaleString()}원`;
@@ -94,7 +87,7 @@ const CouponCard = ({ coupon }) => (
 const GuestCouponList = () => {
   const location = useLocation();
   const storeId = location.state?.storeId;
-  const storeName = location.state?.storeName || "덤브 치킨 영남대점";
+  const storeName = location.state?.storeName || "선택한 가게";
   const [coupons, setCoupons] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
   const [errorMessage, setErrorMessage] = useState("");
@@ -102,7 +95,8 @@ const GuestCouponList = () => {
   useEffect(() => {
     const fetchCoupons = async () => {
       if (!storeId) {
-        setCoupons(fallbackCoupons);
+        setErrorMessage("지도에서 쿠폰을 확인할 가게를 선택해 주세요.");
+        setCoupons([]);
         setIsLoading(false);
         return;
       }
@@ -120,7 +114,7 @@ const GuestCouponList = () => {
           error.response?.data?.message ||
             "쿠폰 리스트를 불러오지 못했어요.",
         );
-        setCoupons(fallbackCoupons);
+        setCoupons([]);
       } finally {
         setIsLoading(false);
       }
