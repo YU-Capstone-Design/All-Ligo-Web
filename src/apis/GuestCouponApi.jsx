@@ -1,4 +1,4 @@
-import api from "./api";
+import api from "./guestApi";
 
 export const getNearbyCouponStores = async ({ latitude, longitude }) => {
   const response = await api.get("/api/v1/coupons/nearby/stores", {
@@ -21,8 +21,8 @@ export const getRegionCouponStores = async (region) => {
   return response.data;
 };
 
-export const getStoreCoupons = async (storeId) => {
-  const response = await api.get(`/api/v1/coupons/stores/${storeId}`);
+export const getStoreCoupons = async (storeId, { signal } = {}) => {
+  const response = await api.get(`/api/v1/coupons/stores/${encodeURIComponent(storeId)}`, { signal });
 
   return response.data;
 };

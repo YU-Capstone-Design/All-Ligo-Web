@@ -1,88 +1,63 @@
 const KAKAO_MAP_SCRIPT_ID = "kakao-map-script";
-
 let kakaoMapPromise = null;
 
-const getKakaoMapKey = () => import.meta.env.VITE_KAKAO_MAP_KEY;
-const getKakaoMapDebugInfo = (kakaoMapKey) =>
-  `origin=${window.location.origin}, keySuffix=${kakaoMapKey.slice(-6)}`;
-
 const loadKakaoMap = () => {
-  const kakaoMapKey = getKakaoMapKey();
-
-  if (!kakaoMapKey) {
-    return Promise.reject(new Error("Kakao map key is missing"));
-  }
-
   if (window.kakao?.maps?.Map && window.kakao.maps.services) {
     return Promise.resolve(window.kakao);
   }
-
-  if (kakaoMapPromise) {
-    return kakaoMapPromise;
-  }
+  if (kakaoMapPromise) return kakaoMapPromise;
+  const key = import.meta.env.VITE_KAKAO_MAP_KEY;
+  if (!key) return Promise.reject(new Error("Kakao map key is missing"));
 
   kakaoMapPromise = new Promise((resolve, reject) => {
+    let script = document.getElementById(KAKAO_MAP_SCRIPT_ID);
+    let settled = false;
+    const cleanup = () => {
+      window.clearTimeout(timeout);
+      script?.removeEventListener("load", finishLoad);
+      script?.removeEventListener("error", fail);
+    };
+    const fail = () => {
+      if (settled) return;
+      settled = true;
+      cleanup();
+      script?.remove();
+      reject(new Error(`Kakao Map SDK load failed. origin=${window.location.origin}`));
+    };
     const finishLoad = () => {
-      if (!window.kakao?.maps) {
-        reject(
-          new Error(
-            `Kakao Map SDK loaded without window.kakao.maps. ${getKakaoMapDebugInfo(kakaoMapKey)}`
-          )
-        );
-        return;
-      }
-
+      if (settled) return;
+      if (!window.kakao?.maps?.load) return fail();
       window.kakao.maps.load(() => {
-        if (!window.kakao?.maps?.Map || !window.kakao.maps.services) {
-          reject(
-            new Error(
-              `Kakao Map SDK services library is unavailable. ${getKakaoMapDebugInfo(kakaoMapKey)}`
-            )
-          );
-          return;
-        }
-
+        if (settled) return;
+        if (!window.kakao.maps.Map || !window.kakao.maps.services) return fail();
+        settled = true;
+        cleanup();
         resolve(window.kakao);
       });
     };
+    const timeout = window.setTimeout(fail, 15000);
 
-    const handleError = () => {
-      kakaoMapPromise = null;
-      reject(
-        new Error(
-          `Kakao Map SDK load failed. ${getKakaoMapDebugInfo(kakaoMapKey)}`
-        )
-      );
-    };
-
-    const existingScript = document.getElementById(KAKAO_MAP_SCRIPT_ID);
-
-    if (existingScript) {
-      existingScript.addEventListener("load", finishLoad, { once: true });
-      existingScript.addEventListener("error", handleError, { once: true });
-
-      if (window.kakao?.maps) {
-        finishLoad();
-      }
-
-      return;
+    if (!script) {
+      script = document.createElement("script");
+      const url = new URL("https://dapi.kakao.com/v2/maps/sdk.js");
+      url.searchParams.set("appkey", key);
+      url.searchParams.set("libraries", "services");
+      url.searchParams.set("autoload", "false");
+      script.id = KAKAO_MAP_SCRIPT_ID;
+      script.src = url.toString();
+      script.async = true;
+      script.addEventListener("load", finishLoad, { once: true });
+      script.addEventListener("error", fail, { once: true });
+      document.head.appendChild(script);
+    } else {
+      script.addEventListener("load", finishLoad, { once: true });
+      script.addEventListener("error", fail, { once: true });
+      if (window.kakao?.maps?.load) finishLoad();
     }
-
-    const script = document.createElement("script");
-    const kakaoMapSdkUrl = new URL("https://dapi.kakao.com/v2/maps/sdk.js");
-
-    kakaoMapSdkUrl.searchParams.set("appkey", kakaoMapKey);
-    kakaoMapSdkUrl.searchParams.set("libraries", "services");
-    kakaoMapSdkUrl.searchParams.set("autoload", "false");
-
-    script.id = KAKAO_MAP_SCRIPT_ID;
-    script.src = kakaoMapSdkUrl.toString();
-    script.async = true;
-    script.onload = finishLoad;
-    script.onerror = handleError;
-    document.head.appendChild(script);
+  }).catch((error) => {
+    kakaoMapPromise = null;
+    throw error;
   });
-
   return kakaoMapPromise;
 };
 
