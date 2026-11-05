@@ -11,6 +11,7 @@ import {
   getPromotionScheduleQueue,
 } from "../apis/PromotionApi";
 import { getMyPageInfo } from "../apis/UserApi";
+import { getVideoPlayback } from "../utils/videoPlayback";
 
 const initialContent = {
   title: "",
@@ -26,6 +27,7 @@ const initialContent = {
   contentTypeLabel: "",
   posterUrl: "",
   videoUrl: "",
+  youtubeEmbedUrl: "",
   trackUrl: "",
 };
 
@@ -214,6 +216,7 @@ const getSavedContent = (fallbackContent = {}) => ({
     fallbackContent.contentTypeLabel || initialContent.contentTypeLabel,
   posterUrl: fallbackContent.posterUrl || initialContent.posterUrl,
   videoUrl: fallbackContent.videoUrl || initialContent.videoUrl,
+  youtubeEmbedUrl: fallbackContent.youtubeEmbedUrl || initialContent.youtubeEmbedUrl,
   trackUrl: fallbackContent.trackUrl || initialContent.trackUrl,
 });
 
@@ -253,11 +256,7 @@ const toPreviewContent = (
   contentTypeLabel:
     preview.contentTypeLabel || fallbackContent.contentTypeLabel,
   posterUrl: preview.posterUrl || fallbackContent.posterUrl,
-  videoUrl:
-    preview.s3VideoUrl ||
-    preview.localVideoPath ||
-    preview.uploadVideoUrl ||
-    fallbackContent.videoUrl,
+  ...getVideoPlayback(preview),
   trackUrl:
     preview.trackUrl ||
     preview.trackingUrl ||
@@ -692,10 +691,21 @@ const ClearPage = () => {
 
               {isVideo ? (
                 <>
-                  {content.videoUrl ? (
+                  {content.youtubeEmbedUrl ? (
+                    <iframe
+                      className="mx-auto h-[660px] w-full max-w-[400px] rounded-[8px] border-0 bg-[#B8BEC4]"
+                      src={content.youtubeEmbedUrl}
+                      title={`${content.title || "쇼츠"} YouTube 영상`}
+                      allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+                      referrerPolicy="strict-origin-when-cross-origin"
+                      allowFullScreen
+                    />
+                  ) : content.videoUrl ? (
                     <video
                       className="mx-auto h-[660px] w-full max-w-[400px] rounded-[8px] bg-[#B8BEC4] object-cover"
                       controls
+                      playsInline
+                      poster={content.posterUrl || undefined}
                       src={content.videoUrl}
                     />
                   ) : (

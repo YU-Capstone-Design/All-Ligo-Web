@@ -8,6 +8,7 @@ import todayStatusIcon from "../assets/queue/check.png";
 import statusCompleteIcon from "../assets/queue/finish.png";
 import statusProgressIcon from "../assets/queue/ing.png";
 import statusWaitingIcon from "../assets/queue/wait.png";
+import statusFailedIcon from "../assets/queue/failed.svg";
 import { getPromotionScheduleQueue } from "../apis/PromotionApi";
 
 const statusStyles = {
@@ -34,7 +35,7 @@ const statusStyles = {
   },
   failed: {
     wrapper: "bg-[#FFE8E8] text-[#ED0404]",
-    icon: statusWaitingIcon,
+    icon: statusFailedIcon,
     typeBadge: "bg-[#F6F6F8] text-[#9DA4AB]",
     title: "text-[#B4BAC0]",
     arrow: "text-[#EDF1F5]",
