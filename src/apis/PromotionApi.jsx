@@ -1,5 +1,6 @@
 import axios from 'axios'
 import api from './api'
+import { schedulesOverlap, SCHEDULE_CONFLICT_MESSAGE } from '../utils/promotionSchedule'
 
 export const getPromotionPresignedUrl = async ({ fileName, contentType }) => {
   const response = await api.post('/api/v1/s3/presigned-url', {
@@ -42,6 +43,39 @@ export const getPromotionDetail = async (promotionId) => {
   const response = await api.get(`/api/v1/promotions/${promotionId}`)
 
   return response.data
+}
+
+export const validatePromotionSchedules = async ({ schedules, deadline, promotionId }) => {
+  const now = new Date()
+  for (let index = 0; index < schedules.length; index += 1) {
+    if (schedules.slice(0, index).some((other) =>
+      schedulesOverlap(schedules[index], deadline, other, deadline, now))) {
+      throw new Error('같은 요일과 시간이 중복되어 있어요. 예약 시간을 확인해주세요.')
+    }
+  }
+
+  const promotions = await getMyPromotions()
+  if (!Array.isArray(promotions)) {
+    throw new Error('기존 예약을 확인하지 못했어요. 잠시 후 다시 시도해주세요.')
+  }
+  const others = promotions.filter((item) =>
+    promotionId == null || String(item.promotionId) !== String(promotionId))
+  const details = await Promise.all(others.map((item) => {
+    if (item.promotionId == null) {
+      throw new Error('기존 예약을 확인하지 못했어요. 잠시 후 다시 시도해주세요.')
+    }
+    return getPromotionDetail(item.promotionId)
+  }))
+
+  for (const detail of details) {
+    if (!Array.isArray(detail?.schedules)) {
+      throw new Error('기존 예약을 확인하지 못했어요. 잠시 후 다시 시도해주세요.')
+    }
+    if (schedules.some((schedule) => detail.schedules.some((other) =>
+      schedulesOverlap(schedule, deadline, other, detail.deadline, now)))) {
+      throw new Error(SCHEDULE_CONFLICT_MESSAGE)
+    }
+  }
 }
 
 export const updatePromotion = async ({ promotionId, promotionForm }) => {

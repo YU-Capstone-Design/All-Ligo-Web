@@ -20,6 +20,7 @@ import {
   getPromotionPresignedUrl,
   updatePromotion,
   uploadFileToS3,
+  validatePromotionSchedules,
 } from "../apis/PromotionApi";
 
 const PROMPT_MAX_LENGTH = 200;
@@ -235,6 +236,12 @@ const ProductEdit = () => {
           dayOfWeek: dayOfWeekMap[schedule.day],
           publishTime,
         };
+      });
+
+      await validatePromotionSchedules({
+        schedules: nextSchedules,
+        deadline: toDateTimeValue(deadlineDate),
+        promotionId: productId,
       });
 
       const imageUrls = await Promise.all(
