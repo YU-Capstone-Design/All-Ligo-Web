@@ -1,412 +1,235 @@
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { IoChevronDown } from "react-icons/io5";
-import locationIcon from "../assets/location.svg";
-import mapPinIcon from "../assets/map-pin.svg";
-import fireIcon from "../assets/fire.svg";
-import {
-  getNearbyCouponStores,
-  getRegionCouponStores,
-} from "../apis/GuestCouponApi";
+import { IoArrowBack, IoChevronDown, IoChevronForward, IoChevronUp, IoClose, IoCompassOutline, IoImageOutline, IoListOutline, IoLocateOutline, IoLocationOutline, IoMapOutline, IoRefreshOutline, IoSearchOutline, IoStorefrontOutline, IoTicketOutline, IoAdd, IoRemove } from "react-icons/io5";
+import logo from "../assets/ligoicon.svg";
+import GuestMap from "../components/guest/GuestMap";
+import GuestStoreDetails, { StoreImage } from "../components/guest/GuestStoreDetails";
+import { getNearbyGuestStores } from "../apis/GuestStoreApi";
+import { DEFAULT_GUEST_CENTER, distanceInMeters, filterStores, formatDistance } from "../utils/guestDiscovery";
 
-const NEARBY_CATEGORY = "거리순";
-
-const categories = [
-  NEARBY_CATEGORY,
-  "서울",
-  "인천",
-  "경기",
-  "강원",
-  "대전",
-  "세종",
-  "충남",
-  "충북",
-  "대구",
-  "경북",
-  "부산",
-  "울산",
-  "경남",
-  "광주",
-  "전남",
-  "전북",
-  "제주",
+const FILTERS = [
+  { id: "all", label: "전체", Icon: IoCompassOutline },
+  { id: "coupons", label: "쿠폰", Icon: IoTicketOutline },
+  { id: "contents", label: "콘텐츠", Icon: IoImageOutline },
 ];
-
-const fallbackStores = Array.from({ length: 6 }, (_, index) => ({
-  id: index + 1,
-  distance: "500m",
-  name: "덤브 치킨 영남대점",
-  description: "[빠삭함에 홀려 촉촉함을 느끼는] 반반...",
-  couponCount: 5,
-}));
-
-const getDistanceLabel = (fromLocation, store) => {
-  if (!fromLocation || !store.latitude || !store.longitude) {
-    return "";
-  }
-
-  const toRadians = (degree) => (degree * Math.PI) / 180;
-  const earthRadius = 6371;
-  const latitudeDistance = toRadians(store.latitude - fromLocation.latitude);
-  const longitudeDistance = toRadians(store.longitude - fromLocation.longitude);
-  const currentLatitude = toRadians(fromLocation.latitude);
-  const storeLatitude = toRadians(store.latitude);
-
-  const haversine =
-    Math.sin(latitudeDistance / 2) ** 2 +
-    Math.cos(currentLatitude) *
-      Math.cos(storeLatitude) *
-      Math.sin(longitudeDistance / 2) ** 2;
-  const distanceKm =
-    earthRadius * 2 * Math.atan2(Math.sqrt(haversine), Math.sqrt(1 - haversine));
-
-  if (distanceKm < 1) {
-    return `${Math.max(1, Math.round(distanceKm * 1000))}m`;
-  }
-
-  return `${distanceKm.toFixed(1)}km`;
-};
-
-const toStoreItem = (store, currentLocation) => ({
-  id: store.storeId ?? store.id ?? store.storeName,
-  distance: getDistanceLabel(currentLocation, store),
-  name: store.storeName,
-  region: store.region,
-  description: "할인쿠폰을 사용할 수 있는 매장이에요.",
-  couponCount: store.couponCount ?? 5,
-  imageUrl: store.profileImageUrl,
-});
-
-const GuestStoreCard = ({ store, onClick }) => {
-  return (
-    <button
-      type="button"
-      onClick={onClick}
-      className="flex h-[130px] w-full overflow-hidden rounded-[20px] bg-white text-left"
-    >
-      <div className="h-full w-[36%] shrink-0 bg-[#DFE4EA]">
-        {store.imageUrl && (
-          <img
-            className="h-full w-full object-cover"
-            src={store.imageUrl}
-            alt=""
-          />
-        )}
-      </div>
-
-      <div className="flex min-w-0 flex-1 flex-col justify-center pr-[12px] pl-[14px]">
-        <div className="flex items-center text-[14px] font-normal leading-[14px] tracking-[-0.5px] text-[#424950]">
-          <img className="mr-[4px] h-[16px] w-[16px]" src={mapPinIcon} alt="" />
-          <span>{store.distance ? "내 위치에서" : "지역"}&nbsp;</span>
-          <span className="font-normal text-[#3182F6]">
-            {store.distance || store.region}
-          </span>
-        </div>
-
-        <div className="mt-[8px] min-w-0">
-          <h2 className="truncate text-[20px] font-medium leading-[24px] tracking-[-0.5px] text-black">
-            {store.name}
-          </h2>
-          <p className="mt-[8px] truncate text-[14px] font-normal leading-[14px] tracking-[-0.5px] text-[#7E858C]">
-            {store.description}
-          </p>
-        </div>
-
-        <div className="mt-[12px] flex items-center overflow-hidden text-[14px] font-normal leading-[14px] tracking-[-0.5px] text-[#424950]">
-          <span className="truncate">사용할 수 있는 쿠폰&nbsp;</span>
-          <span className="line-clamp-1 overflow-hidden text-ellipsis text-[14px] font-bold leading-[14px] tracking-[-0.5px] text-[#E42A2A]">
-            {store.couponCount}개
-          </span>
-          <img className="ml-[4px] h-[24px] w-[24px]" src={fireIcon} alt="" />
-        </div>
-      </div>
-    </button>
-  );
-};
 
 const Guest = () => {
   const navigate = useNavigate();
-  const [selectedCategory, setSelectedCategory] = useState(NEARBY_CATEGORY);
-  const [isCategoryOpen, setIsCategoryOpen] = useState(false);
+  const mapRef = useRef(null);
+  const requestRef = useRef(null);
+  const searchRequestRef = useRef(0);
+  const locationRequestRef = useRef(0);
+  const [mapReady, setMapReady] = useState(false);
+  const [center, setCenter] = useState(DEFAULT_GUEST_CENTER);
+  const [searchCenter, setSearchCenter] = useState(DEFAULT_GUEST_CENTER);
+  const [target, setTarget] = useState(null);
   const [currentLocation, setCurrentLocation] = useState(null);
+  const [locating, setLocating] = useState(false);
+  const [query, setQuery] = useState("");
+  const [appliedQuery, setAppliedQuery] = useState("");
+  const [searchPending, setSearchPending] = useState(false);
+  const [areaName, setAreaName] = useState("영남대 주변");
+  const [filter, setFilter] = useState("all");
   const [stores, setStores] = useState([]);
-  const [isLoading, setIsLoading] = useState(false);
-  const [errorMessage, setErrorMessage] = useState("");
-  const [isLocationPromptOpen, setIsLocationPromptOpen] = useState(false);
-  const [locationPermissionState, setLocationPermissionState] =
-    useState("prompt");
-  const displayedCategories = [
-    selectedCategory,
-    ...categories.filter((category) => category !== selectedCategory),
-  ];
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
+  const [notice, setNotice] = useState("");
+  const [selectedId, setSelectedId] = useState(null);
+  const [sheet, setSheet] = useState("preview");
+  const [refreshKey, setRefreshKey] = useState(0);
+  const selectedStore = stores.find((store) => store.id === selectedId);
+  const visibleStores = useMemo(() => filterStores(stores, filter, appliedQuery)
+    .sort((a, b) => distanceInMeters(searchCenter, a) - distanceInMeters(searchCenter, b)), [stores, filter, appliedQuery, searchCenter]);
+  const moved = (distanceInMeters(center, searchCenter) || 0) > 80;
 
-  const loadNearbyStores = useCallback(async (location) => {
-    setIsLoading(true);
-    setErrorMessage("");
-
-    try {
-      const response = await getNearbyCouponStores(location);
-      setStores(
-        Array.isArray(response)
-          ? response.map((store) => toStoreItem(store, location))
-          : [],
-      );
-    } catch (error) {
-      setErrorMessage(
-        error.response?.data?.message ||
-          "근처 할인쿠폰 매장을 불러오지 못했어요.",
-      );
-      setStores(fallbackStores);
-    } finally {
-      setIsLoading(false);
-    }
+  const loadStores = useCallback((location, { quiet = false } = {}) => {
+    requestRef.current?.abort();
+    const controller = new AbortController();
+    requestRef.current = controller;
+    return getNearbyGuestStores(location, { signal: controller.signal }).then((nextStores) => {
+      if (!controller.signal.aborted) { setStores(nextStores); setError(""); setRefreshKey((value) => value + 1); }
+    }).catch((error) => {
+      if (import.meta.env.DEV && !controller.signal.aborted) console.error("Guest store discovery failed:", error.message);
+      if (!controller.signal.aborted) setError(quiet ? "새 소식을 확인하지 못했어요. 다시 시도해 주세요." : "가게 정보를 불러오지 못했어요. 다시 시도해 주세요.");
+    }).finally(() => {
+      if (!controller.signal.aborted) setLoading(false);
+    });
   }, []);
 
-  const handleLocationPermissionClick = useCallback(() => {
+  useEffect(() => {
+    loadStores(searchCenter);
+    const refresh = () => {
+      if (document.visibilityState === "visible") loadStores(searchCenter, { quiet: true });
+    };
+    const timer = window.setInterval(refresh, 60000);
+    document.addEventListener("visibilitychange", refresh);
+    return () => {
+      requestRef.current?.abort();
+      window.clearInterval(timer);
+      document.removeEventListener("visibilitychange", refresh);
+    };
+  }, [searchCenter, loadStores]);
+
+  useEffect(() => () => {
+    searchRequestRef.current += 1;
+    locationRequestRef.current += 1;
+  }, []);
+
+  const onMapReady = useCallback((map) => { mapRef.current = map; setMapReady(true); }, []);
+  const selectStore = useCallback((store) => {
+    setSelectedId(store.id);
+    setSheet("expanded");
+    setTarget({ latitude: store.latitude, longitude: store.longitude });
+  }, []);
+
+  const moveToArea = (location, label) => {
+    searchRequestRef.current += 1;
+    locationRequestRef.current += 1;
+    setSearchPending(false);
+    setLocating(false);
+    setLoading(true);
+    setError("");
+    setStores([]);
+    setSelectedId(null);
+    setAppliedQuery("");
+    setSheet("preview");
+    setTarget({ ...location, level: 5 });
+    setSearchCenter({ ...location });
+    setCenter(location);
+    setAreaName(label);
+  };
+
+  const locate = () => {
+    searchRequestRef.current += 1;
+    setSearchPending(false);
     if (!navigator.geolocation) {
-      setLocationPermissionState("unsupported");
-      setIsLocationPromptOpen(true);
-      setStores([]);
+      setNotice("이 브라우저에서는 내 위치를 사용할 수 없어요. 지역을 검색해 주세요.");
       return;
     }
+    const requestId = ++locationRequestRef.current;
+    setLocating(true);
+    setNotice("");
+    navigator.geolocation.getCurrentPosition((position) => {
+      if (requestId !== locationRequestRef.current) return;
+      const location = { latitude: position.coords.latitude, longitude: position.coords.longitude };
+      setCurrentLocation(location);
+      setQuery("");
+      moveToArea(location, "내 위치 주변");
+    }, (locationError) => {
+      if (requestId !== locationRequestRef.current) return;
+      setLocating(false);
+      setNotice(locationError.code === 1
+        ? "위치 권한이 꺼져 있어요. 브라우저 설정에서 허용하거나 지역을 검색해 주세요."
+        : "현재 위치를 확인하지 못했어요. 지도를 움직이거나 지역을 검색해 주세요.");
+    }, { enableHighAccuracy: false, timeout: 10000, maximumAge: 60000 });
+  };
 
-    setErrorMessage("");
-
-    navigator.geolocation.getCurrentPosition(
-      (position) => {
-        const location = {
-          latitude: position.coords.latitude,
-          longitude: position.coords.longitude,
-        };
-
-        setCurrentLocation(location);
-        setIsLocationPromptOpen(false);
-        loadNearbyStores(location);
-      },
-      (error) => {
-        if (error.code === error.PERMISSION_DENIED) {
-          setLocationPermissionState("denied");
-          setIsLocationPromptOpen(true);
-          setStores([]);
-        setIsLoading(false);
-        return;
-      }
-
-        setLocationPermissionState("prompt");
-        setIsLocationPromptOpen(true);
-        setStores([]);
-        setIsLoading(false);
-      },
-    );
-  }, [loadNearbyStores]);
-
-  useEffect(() => {
-    const checkLocationPermission = async () => {
-      if (!navigator.geolocation) {
-        setLocationPermissionState("unsupported");
-        setIsLocationPromptOpen(true);
-        return;
-      }
-
-      if (!navigator.permissions?.query) {
-        setIsLocationPromptOpen(true);
-        return;
-      }
-
-      try {
-        const permission = await navigator.permissions.query({
-          name: "geolocation",
-        });
-
-        if (permission.state === "granted") {
-          handleLocationPermissionClick();
-          return;
-        }
-
-        setLocationPermissionState(permission.state);
-        setIsLocationPromptOpen(true);
-      } catch {
-        setLocationPermissionState("prompt");
-        setIsLocationPromptOpen(true);
-      }
-    };
-
-    checkLocationPermission();
-  }, [handleLocationPermissionClick]);
-
-  const handleCategoryClick = async (category) => {
-    setSelectedCategory(category);
-    setIsCategoryOpen(false);
-
-    try {
-      setIsLoading(true);
-      setErrorMessage("");
-
-      if (category === NEARBY_CATEGORY) {
-        if (!currentLocation) {
-          setIsLocationPromptOpen(true);
-          setStores([]);
-          return;
-        }
-
-        await loadNearbyStores(currentLocation);
-        return;
-      }
-
-      const response = await getRegionCouponStores(category);
-      setStores(
-        Array.isArray(response)
-          ? response.map((store) => toStoreItem(store, currentLocation))
-          : [],
-      );
-    } catch (error) {
-      setErrorMessage(
-        error.response?.data?.message ||
-          "할인쿠폰 매장을 불러오지 못했어요.",
-      );
-      setStores(fallbackStores);
-    } finally {
-      setIsLoading(false);
+  const search = (event) => {
+    event.preventDefault();
+    locationRequestRef.current += 1;
+    setLocating(false);
+    const keyword = query.trim();
+    setNotice("");
+    if (!keyword) { setAppliedQuery(""); return; }
+    const matching = filterStores(stores, "all", keyword);
+    if (matching.length) {
+      searchRequestRef.current += 1;
+      setSearchPending(false);
+      setFilter("all");
+      setAppliedQuery(keyword);
+      setSelectedId(null);
+      setSheet("preview");
+      setTarget({ latitude: matching[0].latitude, longitude: matching[0].longitude, level: 4 });
+      return;
     }
+    if (!mapReady) { setNotice("지도 연결 후 지역을 검색할 수 있어요."); return; }
+    const requestId = ++searchRequestRef.current;
+    setSearchPending(true);
+    const places = new window.kakao.maps.services.Places();
+    places.keywordSearch(keyword, (results, status) => {
+      if (requestId !== searchRequestRef.current) return;
+      setSearchPending(false);
+      if (status !== window.kakao.maps.services.Status.OK || !results.length) {
+        setNotice("검색 결과가 없어요. 지역명이나 가게 이름을 다시 입력해 주세요.");
+        return;
+      }
+      moveToArea({ latitude: Number(results[0].y), longitude: Number(results[0].x) }, `${results[0].place_name} 주변`);
+    }, { location: mapRef.current.getCenter(), sort: window.kakao.maps.services.SortBy.ACCURACY });
   };
 
-  const locationPromptContent = {
-    prompt: {
-      title: "위치 권한을 설정해주세요",
-      description:
-        "내 주변 3km 안의 할인쿠폰 매장을 가까운 순서대로 보여드릴게요.",
-    },
-    denied: {
-      title: "위치 권한이 필요해요",
-      description:
-        "근처 할인쿠폰 매장을 보려면 위치 권한을 허용해야 해요. 차단된 상태라면 브라우저 또는 휴대폰 설정에서 위치 권한을 허용한 뒤 다시 눌러주세요.",
-    },
-    unsupported: {
-      title: "위치 정보를 사용할 수 없어요",
-      description:
-        "현재 브라우저에서는 위치 권한을 요청할 수 없어요. 위치 권한을 사용할 수 있는 브라우저에서 다시 시도해주세요.",
-    },
+  const searchHere = () => {
+    setQuery("");
+    setNotice("");
+    moveToArea(center, "이 지도 주변");
   };
-  const currentLocationPrompt =
-    locationPromptContent[locationPermissionState] || locationPromptContent.prompt;
+
+  const refreshStores = () => {
+    setLoading(true);
+    setError("");
+    loadStores(searchCenter);
+  };
+
+  const changeFilter = (value) => {
+    setFilter(value);
+    setSelectedId(null);
+    setSheet("preview");
+  };
 
   return (
-    <div className="no-scrollbar h-[100dvh] overflow-y-auto bg-[#F6F6F8] px-[20px] pb-[24px] pt-[31px]">
-      <header className="flex items-center gap-[14px]">
-        <img className="h-[42px] w-[42px] shrink-0" src={locationIcon} alt="" />
-        <h1 className="text-[20px] font-bold leading-[24px] tracking-[-0.5px] text-black">
-          근처 할인쿠폰이 있는 가게에요!
-        </h1>
-      </header>
-
-      <div className="relative mt-[18px] flex justify-end">
-        <button
-          type="button"
-          onClick={() => setIsCategoryOpen((isOpen) => !isOpen)}
-          className={`flex h-[45px] w-[102px] items-center justify-center gap-[4px] border border-[#E9E9EC] px-[8px] text-[16px] font-normal leading-[31px] text-[#62676D] ${
-            isCategoryOpen
-              ? "rounded-[16px] bg-transparent shadow-none"
-              : "rounded-[45.652px] bg-white shadow-[0_0_12px_rgba(0,0,0,0.04)]"
-          }`}
-          aria-expanded={isCategoryOpen}
-        >
-          {selectedCategory}
-          <IoChevronDown
-            className={`text-[18px] transition-transform ${isCategoryOpen ? "rotate-180" : ""}`}
-          />
-        </button>
-
-        {isCategoryOpen && (
-          <div className="no-scrollbar absolute right-0 top-0 z-20 flex max-h-[360px] w-[102px] flex-col items-center gap-[4px] overflow-y-auto rounded-[16px] border border-[#E9E9EC] bg-white/70 px-[8px] py-[4px] text-[16px] font-normal leading-[31px] text-[#62676D] shadow-[0_0_12px_rgba(0,0,0,0.15)] backdrop-blur-[4px]">
-            {displayedCategories.map((category, index) => (
-              <div key={category} className="flex w-full flex-col items-center">
-                <button
-                  type="button"
-                  onClick={() => handleCategoryClick(category)}
-                  className="flex h-[31px] w-full items-center justify-center whitespace-nowrap"
-                >
-                  {category}
-                  {index === 0 && (
-                    <IoChevronDown className="ml-[4px] text-[18px]" />
-                  )}
-                </button>
-
-                {index < displayedCategories.length - 1 && (
-                  <div className="h-px w-full bg-[#E2E7ED]" />
-                )}
-              </div>
-            ))}
-          </div>
-        )}
-      </div>
-
-      <main className="mt-[16px] flex flex-col gap-[14px]">
-        {isLoading && (
-          <p className="rounded-[20px] bg-white px-[16px] py-[18px] text-[14px] font-normal text-[#7E858C]">
-            할인쿠폰 매장을 불러오는 중이에요.
-          </p>
-        )}
-
-        {!isLoading && errorMessage && (
-          <p className="rounded-[20px] bg-white px-[16px] py-[18px] text-[14px] font-normal leading-[20px] text-[#E42A2A]">
-            {errorMessage}
-          </p>
-        )}
-
-        {!isLoading && stores.length === 0 && !errorMessage && (
-          <p className="rounded-[20px] bg-white px-[16px] py-[18px] text-[14px] font-normal text-[#7E858C]">
-            조회된 할인쿠폰 매장이 없어요.
-          </p>
-        )}
-
-        {!isLoading && stores.map((store) => (
-          <GuestStoreCard
-            key={store.id}
-            store={store}
-            onClick={() =>
-              navigate("/guest/coupons", {
-                state: {
-                  storeId: store.id,
-                  storeName: store.name,
-                },
-              })
-            }
-          />
-        ))}
-      </main>
-
-      {isLocationPromptOpen && (
-        <div className="absolute inset-0 z-50 flex items-center justify-center bg-black/30 px-[28px]">
-          <section className="w-full rounded-[20px] bg-white px-[20px] py-[22px] shadow-[0_12px_32px_rgba(0,0,0,0.18)]">
-            <div className="flex items-start gap-[12px]">
-              <img
-                className="h-[42px] w-[42px] shrink-0"
-                src={locationIcon}
-                alt=""
-              />
-              <div className="min-w-0">
-                <h2 className="text-[20px] font-bold leading-[24px] tracking-[-0.5px] text-black">
-                  {currentLocationPrompt.title}
-                </h2>
-                <p className="mt-[8px] text-[14px] font-normal leading-[20px] tracking-[-0.5px] text-[#62676D]">
-                  {currentLocationPrompt.description}
-                </p>
-              </div>
-            </div>
-
-            <div className="mt-[22px]">
-              <button
-                type="button"
-                onClick={handleLocationPermissionClick}
-                className="h-[48px] w-full rounded-[12px] bg-[#2880EB] text-[15px] font-semibold text-white"
-              >
-                위치 권한 설정
-              </button>
-            </div>
-          </section>
+    <main className={`relative h-[100dvh] w-full overflow-hidden bg-[#F6F6F8] tracking-[-0.35px] text-[#202A38] [&_button]:cursor-pointer [&_button:disabled]:cursor-default [&_button:disabled]:opacity-50 [&_button:focus-visible]:outline-2 [&_button:focus-visible]:outline-offset-2 [&_button:focus-visible]:outline-[#89BAFF] [&_a:focus-visible]:outline-2 [&_a:focus-visible]:outline-[#89BAFF] ${sheet === "expanded" ? "[--sheet-height:60%]" : sheet === "collapsed" ? "[--sheet-height:76px]" : "[--sheet-height:34%]"}`}>
+      <GuestMap stores={visibleStores} selectedId={selectedId} onSelect={selectStore} onCenterChange={setCenter} onReady={onMapReady} target={target} currentLocation={currentLocation} />
+      <header className="absolute inset-x-0 top-0 z-20 h-[146px] bg-white px-4 pt-3 shadow-[0_3px_8px_#2d45630a]">
+        <div className="mb-2.5 flex h-[25px] items-center gap-1.5 [&>img]:h-[23px] [&>img]:w-[22px]">
+          <button className="-ml-1.5 flex h-8 w-6 items-center justify-center text-[#7E858C]" type="button" aria-label="시작 화면으로 돌아가기" onClick={() => navigate("/splash")}><IoArrowBack /></button>
+          <img src={logo} alt="" />
+          <span className="ml-auto flex items-center gap-1 whitespace-nowrap text-[9px] text-[#8793A2] max-[360px]:hidden [&_i]:h-[5px] [&_i]:w-[5px] [&_i]:rounded-full [&_i]:bg-[#2880EB]"><i /> 우리 동네 발견</span>
         </div>
-      )}
-    </div>
+        <form className="flex h-[45px] items-center gap-2 rounded-xl border-[1.5px] border-[#2880EB] bg-white px-3 shadow-[0_4px_12px_#2880eb08] [&>svg]:shrink-0 [&>svg]:text-[22px] [&>svg]:text-[#2880EB] [&_input]:min-w-0 [&_input]:w-full [&_input]:bg-transparent [&_input]:text-xs [&_input]:outline-none [&_input]:placeholder:text-[#9DA4AB] [&_button]:flex [&_button]:h-8 [&_button]:w-6 [&_button]:shrink-0 [&_button]:items-center [&_button]:justify-center [&_button]:text-[#2880EB]" onSubmit={search} role="search">
+          <IoSearchOutline aria-hidden="true" />
+          <input aria-label="지역 또는 가게 검색" placeholder="어떤 동네, 어떤 가게가 궁금하세요?" value={query} onChange={(event) => {
+            setQuery(event.target.value);
+            searchRequestRef.current += 1;
+            setSearchPending(false);
+            if (!event.target.value.trim()) setAppliedQuery("");
+          }} />
+          {query && <button className="!w-[18px] !text-[#9DA4AB]" type="button" aria-label="검색어 지우기" onClick={() => { setQuery(""); setAppliedQuery(""); searchRequestRef.current += 1; setSearchPending(false); }}><IoClose /></button>}
+          <button type="submit" aria-label="검색" disabled={searchPending}>{searchPending ? <span className="inline-block h-[18px] w-[18px] shrink-0 animate-spin rounded-full border-2 border-[#DBEAFF] border-t-[#2880EB] motion-reduce:animate-none" /> : <IoChevronForward />}</button>
+        </form>
+        <nav className="mt-2.5 flex gap-2 [&_button]:flex [&_button]:items-center [&_button]:justify-center [&_button]:gap-1.5 [&_button]:rounded-full [&_button]:border [&_button]:border-[#E6EAF0] [&_button]:bg-white [&_button]:px-[15px] [&_button]:py-[7px] [&_button]:text-xs [&_button]:font-semibold [&_button]:text-[#626D7B] [&_button]:transition-colors [&_button[aria-pressed=true]]:border-[#2880EB] [&_button[aria-pressed=true]]:bg-[#2880EB] [&_button[aria-pressed=true]]:text-white [&_button[aria-pressed=true]]:shadow-[0_3px_8px_#2880eb24] [&_svg]:text-base" aria-label="가게 필터">
+          {FILTERS.map(({ id, label, Icon }) => <button type="button" key={id} aria-pressed={filter === id} onClick={() => changeFilter(id)}><Icon />{label}</button>)}
+        </nav>
+              </header>
+
+      <div className="absolute left-1/2 top-[163px] z-5 -translate-x-1/2">
+        <button type="button" className="flex items-center gap-[5px] whitespace-nowrap rounded-full border border-[#E5EBF3] bg-white px-3.5 py-[9px] text-[11px] font-semibold text-[#2880EB] shadow-[0_3px_16px_#263c6521] [&_svg]:text-[15px]" onClick={searchHere} disabled={loading || !mapReady}><IoRefreshOutline className={loading ? "animate-spin motion-reduce:animate-none" : ""} />{moved ? "이 지역 다시 검색" : "이 지역 새로고침"}</button>
+      </div>
+      <div className="absolute bottom-[calc(var(--sheet-height)+28px)] right-3.5 z-5 flex flex-col gap-[9px] [&_button]:flex [&_button]:h-[38px] [&_button]:w-[38px] [&_button]:items-center [&_button]:justify-center [&_button]:bg-white [&_button]:text-[21px] [&_button]:text-[#59697A]" aria-label="지도 조작">
+        <div className="overflow-hidden rounded-xl border border-[#E5EBF3] shadow-[0_3px_14px_#263c651a] [&_button+button]:border-t [&_button+button]:border-[#EDF0F4] [@media(max-height:600px)]:hidden">
+          <button type="button" aria-label="지도 확대" disabled={!mapReady} onClick={() => mapRef.current.setLevel(Math.max(1, mapRef.current.getLevel() - 1))}><IoAdd /></button>
+          <button type="button" aria-label="지도 축소" disabled={!mapReady} onClick={() => mapRef.current.setLevel(Math.min(14, mapRef.current.getLevel() + 1))}><IoRemove /></button>
+        </div>
+        <button type="button" className="rounded-full border border-[#E5EBF3] !text-[#2880EB] shadow-[0_3px_14px_#263c651a]" aria-label="내 위치로 이동" disabled={locating || !mapReady} onClick={locate}>{locating ? <span className="inline-block h-[18px] w-[18px] shrink-0 animate-spin rounded-full border-2 border-[#DBEAFF] border-t-[#2880EB] motion-reduce:animate-none" /> : <IoLocateOutline />}</button>
+      </div>
+      {notice && <div className="absolute bottom-[calc(var(--sheet-height)+22px)] left-4 right-[63px] z-30 flex items-center gap-3 rounded-xl bg-[#243951ED] px-3 py-[11px] text-white shadow-[0_4px_20px_#152d4f24] [&_p]:text-[11px] [&_p]:leading-relaxed [&_button]:flex [&_button]:shrink-0 [&_button]:p-1" role="status"><p>{notice}</p><button type="button" aria-label="안내 닫기" onClick={() => setNotice("")}><IoClose /></button></div>}
+
+      <section className="absolute inset-x-0 bottom-0 z-10 flex h-[var(--sheet-height)] flex-col rounded-t-[22px] bg-white pb-[env(safe-area-inset-bottom)] shadow-[0_-4px_24px_#243d6514]" aria-label={selectedStore ? `${selectedStore.name} 상세 정보` : "주변 가게 목록"}>
+        <button className="flex h-[22px] w-full shrink-0 items-center justify-center rounded-t-[22px] [&>span]:h-1 [&>span]:w-[34px] [&>span]:rounded-full [&>span]:bg-[#DCE2EA]" type="button" aria-label={sheet === "expanded" ? "패널 줄이기" : "패널 펼치기"} aria-expanded={sheet === "expanded"} onClick={() => setSheet(sheet === "expanded" ? "preview" : "expanded")}><span /></button>
+        <div className="flex min-h-[43px] shrink-0 items-center justify-between border-b border-[#EDF0F4] px-5 pb-3 pt-[5px] text-xs [&>div]:flex [&>div]:min-w-0 [&>div]:max-w-[calc(100%-75px)] [&>div]:items-center [&>div]:gap-[5px] [&>div]:font-semibold [&>div>span]:truncate [&_svg]:shrink-0 [&_svg]:text-base [&_svg]:text-[#2880EB]">
+          <div><IoLocationOutline /><span>{areaName}</span></div>
+          <button type="button" className="flex items-center gap-1 py-[5px] pl-2.5 text-[11px] text-[#8793A2] [&_svg]:!text-sm [&_svg]:!text-[#8793A2]" aria-label={sheet === "collapsed" ? "가게 목록 열기" : "지도 넓게 보기"} onClick={() => setSheet(sheet === "collapsed" ? "preview" : "collapsed")}>{sheet === "collapsed" ? <><IoListOutline /> 목록 <IoChevronUp /></> : <><IoMapOutline /> 지도 <IoChevronDown /></>}</button>
+                  </div>
+        <div className={`min-h-0 flex-1 overflow-y-auto overscroll-contain ${sheet === "collapsed" ? "hidden" : ""}`}>
+          {selectedStore ? <GuestStoreDetails key={selectedStore.id} store={selectedStore} initialTab={filter === "contents" || !selectedStore.hasCoupons ? "contents" : "coupons"} refreshKey={refreshKey} onClose={() => setSelectedId(null)} /> : <>
+            <div className="flex items-center justify-between px-5 pb-2.5 pt-[18px] [&_h2]:text-[17px] [&_h2]:font-bold [&_h2]:leading-snug [&_h2_span]:ml-1 [&_h2_span]:text-[#2880EB] [&_p]:mt-1 [&_p]:text-[11px] [&_p]:text-[#8793A2]"><div><h2>{appliedQuery ? `‘${appliedQuery}’ 검색 결과` : "발견한 동네 가게"} <span>{loading ? "" : visibleStores.length}</span></h2><p>{filter === "contents" ? "가게가 직접 전하는 새로운 이야기" : "지도 속 가게를 눌러 소식을 만나보세요"}</p></div><button type="button" className="flex h-[34px] w-[34px] shrink-0 items-center justify-center rounded-full border border-[#EDF0F4] text-[#7E858C]" aria-label="가게 목록 새로고침" disabled={loading} onClick={refreshStores}><IoRefreshOutline /></button></div>
+            {error && <div className="mx-5 mb-4 mt-1 rounded-[10px] bg-[#FFF4F3] p-[13px] text-xs leading-relaxed text-[#BC5753] [&_button]:mt-1.5 [&_button]:font-semibold [&_button]:underline" role="alert"><p>{error}</p><button type="button" onClick={refreshStores}>다시 시도</button></div>}
+            {loading ? <div className="flex items-center justify-center gap-3 px-5 py-11 text-[13px] text-[#8793A2]" role="status"><span className="inline-block h-[18px] w-[18px] shrink-0 animate-spin rounded-full border-2 border-[#DBEAFF] border-t-[#2880EB] motion-reduce:animate-none" />주변 가게를 찾고 있어요</div>
+                : !visibleStores.length && !error ? <div className="flex flex-col items-center justify-center gap-3 px-5 py-6 text-center text-[13px] leading-relaxed text-[#8492A3] [&_h3]:text-base [&_h3]:font-semibold [&_h3]:text-[#47576A]"><div className="mb-1 grid h-[60px] w-[60px] place-items-center rounded-[22px] bg-[#EFF5FF] text-[27px] text-[#73A9EC]"><IoStorefrontOutline /></div><h3>{appliedQuery ? "검색된 가게가 없어요" : "아직 등록된 가게가 없어요"}</h3><p>지도를 움직여 다른 동네를 둘러보거나<br />검색창에서 지역을 찾아보세요.</p>{appliedQuery && <button className="inline-flex items-center justify-center gap-1.5 rounded-lg bg-[#EAF3FF] px-3 py-2 text-xs font-semibold text-[#2880EB]" type="button" onClick={() => { setQuery(""); setAppliedQuery(""); }}>검색 초기화</button>}</div>
+                  : <div className="px-5">{visibleStores.map((store) => <button type="button" className="group relative flex w-full items-center gap-[13px] border-b border-[#EDF0F4] py-[17px] text-left first:pt-2.5 max-[360px]:gap-[9px] [&_h3]:my-[5px] [&_h3]:text-base [&_h3]:font-bold [&_h3]:leading-snug [&_h3]:[overflow-wrap:anywhere] hover:[&_h3]:text-[#2880EB]" key={store.id} onClick={() => selectStore(store)}><div className="min-w-0 flex-1 [&>p]:truncate [&>p]:text-xs [&>p]:text-[#8793A2]"><div className="flex items-center gap-[3px] text-[11px] font-semibold text-[#2880EB] [&_span]:ml-1 [&_span]:text-[10px] [&_span]:font-normal [&_span]:text-[#9DA4AB]"><IoLocationOutline />{formatDistance(distanceInMeters(currentLocation || searchCenter, store))}<span>{currentLocation ? "내 위치에서" : "지도 중심에서"}</span></div><h3>{store.name}</h3><p>{store.address}</p><div className="mt-2.5 flex flex-wrap gap-[5px] [&>span]:inline-flex [&>span]:items-center [&>span]:gap-1 [&>span]:rounded-[5px] [&>span]:bg-[#EEF5FF] [&>span]:px-[7px] [&>span]:py-1 [&>span]:text-[11px] [&>span]:font-semibold [&>span]:leading-[15px] [&>span]:text-[#2880EB]">{store.hasCoupons && <span><IoTicketOutline />쿠폰{store.couponCount !== null ? ` ${store.couponCount}` : ""}</span>}{store.hasContents && <span className="!bg-[#F3F2FC] !text-[#786BC7]"><IoImageOutline />콘텐츠{store.contentCount !== null ? ` ${store.contentCount}` : ""}</span>}</div></div><StoreImage src={store.imageUrl} /><IoChevronForward className="shrink-0 text-sm text-[#BDC7D4]" /></button>)}</div>}
+            <div className="flex items-center justify-center gap-1.5 px-3 py-7 text-[10px] text-[#A0A8B2]"><span className="h-1 w-1 rounded-full bg-[#8CBCFF]" />동네 가게의 새로운 소식을 함께 발견해요</div>
+          </>}
+        </div>
+      </section>
+    </main>
   );
 };
 
