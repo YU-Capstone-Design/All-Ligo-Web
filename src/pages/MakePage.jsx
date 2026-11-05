@@ -9,6 +9,7 @@ import {
   createPromotion,
   getPromotionPresignedUrl,
   uploadFileToS3,
+  validatePromotionSchedules,
 } from '../apis/PromotionApi'
 
 const dayOfWeekMap = {
@@ -104,6 +105,11 @@ const MakePage = () => {
         }),
       ),
     }))
+
+    await validatePromotionSchedules({
+      schedules: publishSchedules,
+      deadline: deadlineDate ? formatDateTime(deadlineDate) : null,
+    })
 
     const uploadedImageUrls = await Promise.all(
       images.map(async ({ file }) => {
